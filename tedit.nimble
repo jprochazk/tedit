@@ -13,6 +13,7 @@ bin           = @["tedit"]
 requires "nim >= 1.4.0"
 requires "nimgl >= 1.1.5"
 requires "glm >= 1.1.1"
+requires "stb_image >= 2.5"
 
 import os, strformat
 

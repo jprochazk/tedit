@@ -2,6 +2,9 @@
 
 import nimgl/[glfw, opengl, imgui], nimgl/imgui/[impl_opengl, impl_glfw]
 import glm
+import options
+
+import ./wnd, ./gl
 
 proc keyProc(window: GLFWWindow, key: int32, scancode: int32, action: int32, mods: int32): void {.cdecl.} =
     if key == GLFWKey.Escape and action == GLFWPress:
@@ -22,62 +25,18 @@ proc statusShader(shader: uint32) =
 proc toRGB(vec: Vec3[float32]): Vec3[float32] =
     return vec3(vec.x / 255, vec.y / 255, vec.z / 255)
 
-when isMainModule:
-    # GLFW
-    assert glfwInit()
+proc main =
+    var window = newWindow("Hello, World!", keyProc)
 
-    glfwWindowHint(GLFWContextVersionMajor, 3)
-    glfwWindowHint(GLFWContextVersionMinor, 3)
-    glfwWindowHint(GLFWOpenglForwardCompat, GLFW_TRUE)
-    glfwWindowHint(GLFWOpenglProfile, GLFW_OPENGL_CORE_PROFILE)
-    glfwWindowHint(GLFWResizable, GLFW_TRUE)
-
-    let w: GLFWWindow = glfwCreateWindow(1600, 900, "NimGL", nil, nil)
-    assert w != nil
-
-    discard w.setKeyCallback(keyProc)
-    w.makeContextCurrent
+    let image: Image = newImage("AYAYA.png")
 
     # Opengl
     assert glInit()
 
-    echo $glVersionMajor & "." & $glVersionMinor
-
-    glEnable(GL_BLEND)
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
-
     var
-        mesh: tuple[vbo, vao, ebo: uint32]
         vertex: uint32
         fragment: uint32
         program: uint32
-
-    var vert = @[
-         1.0f, 1.0f,
-         1.0f, -1.0f,
-        -1.0f, -1.0f,
-        -1.0f, 1.0f
-    ]
-
-    var ind = @[
-        0'u32, 1'u32, 3'u32,
-        1'u32, 2'u32, 3'u32
-    ]
-
-    glGenBuffers(1, addr mesh.vbo)
-    glGenBuffers(1, addr mesh.ebo)
-    glGenVertexArrays(1, addr mesh.vao)
-
-    glBindVertexArray(mesh.vao)
-
-    glBindBuffer(GL_ARRAY_BUFFER, mesh.vbo)
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mesh.ebo)
-
-    glBufferData(GL_ARRAY_BUFFER, cint(cfloat.sizeof * vert.len), addr vert[0], GL_STATIC_DRAW)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, cint(cuint.sizeof * ind.len), addr ind[0], GL_STATIC_DRAW)
-
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(0'u32, 2, EGL_FLOAT, false, cfloat.sizeof * 2, nil)
 
     vertex = glCreateShader(GL_VERTEX_SHADER)
     var vsrc: cstring = """
@@ -119,6 +78,42 @@ void main() {
         glGetProgramInfoLog(program, 1024, addr log_length, addr message[0]);
         echo message
 
+    glEnable(GL_BLEND)
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
+    var vert = @[
+        +1.0f, +1.0f, 1.0f, 1.0f,
+        +1.0f, -1.0f, 1.0f, 0.0f,
+        -1.0f, -1.0f, 0.0f, 0.0f,
+        -1.0f, +1.0f, 0.0f, 1.0f
+    ]
+
+    var ind = @[
+        0'u32, 1'u32, 3'u32,
+        1'u32, 2'u32, 3'u32
+    ]
+
+    #var mesh: tuple[vbo, vao, ebo: uint32]
+    var vbo, vao, ebo: uint32
+    glGenBuffers(1, addr vbo)
+    glGenBuffers(1, addr ebo)
+    glGenVertexArrays(1, addr vao)
+
+    glBindVertexArray(vao)
+
+    glBindBuffer(GL_ARRAY_BUFFER, vbo)
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ebo)
+
+    glBufferData(GL_ARRAY_BUFFER, cint(cfloat.sizeof * vert.len), addr vert[0], GL_STATIC_DRAW)
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, cint(cuint.sizeof * ind.len), addr ind[0], GL_STATIC_DRAW)
+
+    glVertexAttribPointer(0'u32, 2, EGL_FLOAT, false, cfloat.sizeof * 2, nil)
+    glEnableVertexAttribArray(0)
+
+    var offset = (cfloat.sizeof * 2)
+    glVertexAttribPointer(1'u32, 2, EGL_FLOAT, false, cfloat.sizeof * 2, addr offset)
+    glEnableVertexAttribArray(1)
+
     let
         uColor = glGetUniformLocation(program, "uColor")
         uMVP = glGetUniformLocation(program, "uMVP")
@@ -130,7 +125,7 @@ void main() {
     let context = igCreateContext()
 
     # ImGui
-    assert igGlfwInitForOpengl(w, true)
+    assert igGlfwInitForOpengl(window.handle, true)
     assert igOpenGL3Init()
 
     igStyleColorsDark()
@@ -139,7 +134,7 @@ void main() {
     var somefloat: float32 = 0.0f
     var counter: int32 = 0
 
-    while not w.windowShouldClose:
+    while not window.shouldClose():
         glfwPollEvents()
 
         igOpenGL3NewFrame()
@@ -168,21 +163,22 @@ void main() {
         glUniform3fv(uColor, 1, color.caddr)
         glUniformMatrix4fv(uMVP, 1, false, mvp.caddr)
 
-        glBindVertexArray(mesh.vao)
+        glBindVertexArray(vao)
         glDrawElements(GL_TRIANGLES, ind.len.cint, GL_UNSIGNED_INT, nil)
 
         igOpenGL3RenderDrawData(igGetDrawData())
 
-        w.swapBuffers
+        window.swapBuffers()
 
     igOpenGL3Shutdown()
     igGlfwShutdown()
     context.igDestroyContext()
 
-    w.destroyWindow
-
     glfwTerminate()
 
-    glDeleteVertexArrays(1, addr mesh.vao)
-    glDeleteBuffers(1, addr mesh.vbo)
-    glDeleteBuffers(1, addr mesh.ebo)
+    glDeleteVertexArrays(1, addr vao)
+    glDeleteBuffers(1, addr vbo)
+    glDeleteBuffers(1, addr ebo)
+
+when isMainModule:
+    main()
