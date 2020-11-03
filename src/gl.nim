@@ -15,10 +15,12 @@ type GLError* = object of CatchableError
 #template raiseGLError(msg: untyped) = raise newException(GLError, msg)
 
 type Image* = object
-    texture: GLuint
+    handle*: GLuint
+    width*: int
+    height*: int
 
 proc `=destroy`(img: var Image) =
-    glDeleteTextures(1, addr img.texture)
+    glDeleteTextures(1, addr img.handle)
 
 type ImageOptions* = object
     wrap_s*: GLenum
@@ -28,6 +30,7 @@ type ImageOptions* = object
 
 proc newImage*(src: string, options: ImageOptions): Image =
     var width, height, channels: int
+    stbi.setFlipVerticallyOnLoad(true)
     var data = stbi.load(src, width, height, channels, stbi.Default)
 
     assert channels == 4, "Only RGBA is supported"
@@ -39,11 +42,13 @@ proc newImage*(src: string, options: ImageOptions): Image =
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, options.wrap_t)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, options.filter_min)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, options.filter_mag)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, int32(width), int32(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, addr data)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, int32(width), int32(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, addr data[0])
     glGenerateMipmap(GL_TEXTURE_2D)
 
     return Image(
-        texture: texture
+        handle: texture,
+        width: width,
+        height: height
     )
 
 proc newImage*(src: string): Image =

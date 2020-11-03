@@ -28,10 +28,10 @@ proc toRGB(vec: Vec3[float32]): Vec3[float32] =
 proc main =
     var window = newWindow("Hello, World!", keyProc)
 
-    let image: Image = newImage("AYAYA.png")
-
     # Opengl
     assert glInit()
+
+    var image: Image = newImage("AYAYA.png")
 
     var
         vertex: uint32
@@ -42,8 +42,11 @@ proc main =
     var vsrc: cstring = """
 #version 330 core
 layout (location = 0) in vec2 aPos;
+layout (location = 1) in vec2 aUV;
 uniform mat4 uMVP;
+out vec2 vUV;
 void main() {
+    vUV = aUV;
     gl_Position = vec4(aPos, 0.0, 1.0) * uMVP;
 }
     """
@@ -55,9 +58,11 @@ void main() {
     var fsrc: cstring = """
 #version 330 core
 out vec4 FragColor;
+in vec2 vUV;
 uniform vec3 uColor;
+uniform sampler2D uTexture;
 void main() {
-    FragColor = vec4(uColor, 1.0f);
+    FragColor = texture(uTexture, vUV);
 }
     """
     glShaderSource(fragment, 1, addr fsrc, nil)
@@ -107,16 +112,16 @@ void main() {
     glBufferData(GL_ARRAY_BUFFER, cint(cfloat.sizeof * vert.len), addr vert[0], GL_STATIC_DRAW)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, cint(cuint.sizeof * ind.len), addr ind[0], GL_STATIC_DRAW)
 
-    glVertexAttribPointer(0'u32, 2, EGL_FLOAT, false, cfloat.sizeof * 2, nil)
+    glVertexAttribPointer(0'u32, 2, EGL_FLOAT, false, (cfloat.sizeof * 2) * 2, nil)
     glEnableVertexAttribArray(0)
 
-    var offset = (cfloat.sizeof * 2)
-    glVertexAttribPointer(1'u32, 2, EGL_FLOAT, false, cfloat.sizeof * 2, addr offset)
+    glVertexAttribPointer(1'u32, 2, EGL_FLOAT, false, (cfloat.sizeof * 2) * 2, cast[pointer](cfloat.sizeof * 2))
     glEnableVertexAttribArray(1)
 
     let
         uColor = glGetUniformLocation(program, "uColor")
         uMVP = glGetUniformLocation(program, "uMVP")
+        uTexture = glGetUniformLocation(program, "uTexture")
     var
         bg = vec3(33f, 33f, 33f).toRgb()
         color = vec3(50f, 205f, 50f).toRgb()
@@ -152,6 +157,9 @@ void main() {
         igSameLine()
         igText("counter = %d", counter)
         igText("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / igGetIO().framerate, igGetIO().framerate)
+        igImage(cast[pointer](image.handle),
+            ImVec2(x: float(image.width), y: float(image.height)),
+            ImVec2(x: 0f, y: 1f), ImVec2(x: 1f, y: 0f))
         igEnd()
 
         igRender()
@@ -162,6 +170,10 @@ void main() {
         glUseProgram(program)
         glUniform3fv(uColor, 1, color.caddr)
         glUniformMatrix4fv(uMVP, 1, false, mvp.caddr)
+        glUniform1i(uTexture, 0)
+
+        glActiveTexture(GL_TEXTURE0)
+        glBindTexture(GL_TEXTURE_2D, image.handle)
 
         glBindVertexArray(vao)
         glDrawElements(GL_TRIANGLES, ind.len.cint, GL_UNSIGNED_INT, nil)
