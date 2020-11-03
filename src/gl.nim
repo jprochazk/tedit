@@ -6,7 +6,7 @@
 
 import nimgl/[glfw, opengl]
 import stb_image/read as stbi
-import std/[strformat]
+#import std/[strformat]
 import ./log
 
 converter toGLint(val: GLenum): GLint = int32(uint32(val))
@@ -28,11 +28,7 @@ type ImageOptions* = object
 
 proc newImage*(src: string, options: ImageOptions): Image =
     var width, height, channels: int
-    var data: seq[byte]
-    try:
-        data = stbi.load(src, width, height, channels, stbi.Default)
-    except STBIException:
-        log lvlError, &"Failed to read image {src}: {getCurrentExceptionMsg()}"
+    var data = stbi.load(src, width, height, channels, stbi.Default)
 
     assert channels == 4, "Only RGBA is supported"
 
@@ -43,7 +39,7 @@ proc newImage*(src: string, options: ImageOptions): Image =
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, options.wrap_t)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, options.filter_min)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, options.filter_mag)
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, int32(width), GLsizei(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, addr data)
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, int32(width), int32(height), 0, GL_RGBA, GL_UNSIGNED_BYTE, addr data)
     glGenerateMipmap(GL_TEXTURE_2D)
 
     return Image(
