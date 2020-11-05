@@ -380,6 +380,9 @@ proc deinitUI*() =
     igDestroyContext(igGetCurrentContext())
 
 proc render*(ui: var UIState) =
+    ## Render a specific UI state.
+    ## Call after rendering the main scene.
+
     igOpenGL3NewFrame()
     igGlfwNewFrame()
     igNewFrame()

@@ -1,7 +1,5 @@
 import nimgl/[glfw, opengl]
 
-var HAS_WINDOW = false
-
 var
     currentWidth: int = 1600
     currentHeight: int = 900
@@ -12,6 +10,7 @@ proc onResize(window: GLFWWindow, width: int32, height: int32) {.cdecl.} =
     glViewport(0, 0, width, height)
 
 type Window* = object
+    ## RAII-style wrapper over a GLFW window
     handle*: GLFWWindow
 
 proc `=destroy`*(window: var Window) =
@@ -19,6 +18,10 @@ proc `=destroy`*(window: var Window) =
     glfwTerminate()
 
 proc newWindow*(name: string, onKey: GLFWKeyFun): Window =
+    ## Creates and initializes a window.
+    ## Only one window may be created.
+
+    var HAS_WINDOW {.global.} = false
     assert not HAS_WINDOW
     HAS_WINDOW = true
 

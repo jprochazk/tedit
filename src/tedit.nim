@@ -8,7 +8,6 @@ import ./wnd, ./gl, ./ui
 # TODO camera
 # TODO tile map rendering - try naïve approach first (each tile separate uniform/draw calls)
 # TODO sprite rendering - naïve approach is fine
-# TODO investigate stretching after resize
 
 proc keyProc(window: GLFWWindow, key: int32, scancode: int32, action: int32, mods: int32): void {.cdecl.} =
     if key == GLFWKey.Escape and action == GLFWPress:
