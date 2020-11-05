@@ -1,5 +1,4 @@
-import strformat, strutils, times, terminal
-export strformat
+import terminal
 
 type
     LogLevel* = enum
