@@ -17,17 +17,24 @@ struct ImageOptions
 class Image final
 {
 public:
-    Image(const std::string& uri, GLenum type, const ImageOptions& options);
+    Image(const std::string& uri, GLenum type, ImageOptions options = { GL_REPEAT, GL_REPEAT, GL_NEAREST, GL_NEAREST });
     ~Image();
 
     void attach(GLenum slot) const;
     void detach() const;
+
+    std::string getURI() const;
+    GLuint getHandle() const;
+    int getWidth() const;
+    int getHeight() const;
+    GLenum getType() const;
 
 private:
     std::string uri;
     GLuint handle;
     int width;
     int height;
+    int channels;
     GLenum type;
 }; // class Image
 

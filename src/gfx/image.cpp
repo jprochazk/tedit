@@ -1,7 +1,7 @@
 
 #include "image.hpp"
 
-Image::Image(const std::string& uri, GLenum type, const ImageOptions& options)
+Image::Image(const std::string& uri, GLenum type, ImageOptions options)
   : uri(uri)
   , handle(-1)
   , width(0)
@@ -9,11 +9,10 @@ Image::Image(const std::string& uri, GLenum type, const ImageOptions& options)
   , type(type)
 {
     // load image data
-    int width, height, channels;
     stbi_set_flip_vertically_on_load(true);
-    uint8_t* data = stbi_load(uri.c_str(), &width, &height, &channels, 0);
+    uint8_t* data = stbi_load(uri.c_str(), &this->width, &this->height, &this->channels, 0);
 
-    assert(channels == 4);
+    assert(this->channels == 4);
 
     // upload data to gpu
     glGenTextures(1, &this->handle);
@@ -22,7 +21,7 @@ Image::Image(const std::string& uri, GLenum type, const ImageOptions& options)
     glTexParameteri(type, GL_TEXTURE_WRAP_T, options.wrap_t);
     glTexParameteri(type, GL_TEXTURE_MIN_FILTER, options.filter_min);
     glTexParameteri(type, GL_TEXTURE_MAG_FILTER, options.filter_mag);
-    glTexImage2D(type, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
+    glTexImage2D(type, 0, GL_RGBA, this->width, this->height, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
     glGenerateMipmap(type);
 
     // free image data
@@ -45,4 +44,30 @@ void
 Image::detach() const
 {
     glBindTexture(this->type, NULL);
+}
+
+std::string
+Image::getURI() const
+{
+    return this->uri;
+}
+GLuint
+Image::getHandle() const
+{
+    return this->handle;
+}
+int
+Image::getWidth() const
+{
+    return this->width;
+}
+int
+Image::getHeight() const
+{
+    return this->height;
+}
+GLenum
+Image::getType() const
+{
+    return this->type;
 }

@@ -11,6 +11,7 @@ add_requires("CONAN::spdlog/1.8.0", { alias = "spdlog" })
 -- create a target
 target("tedit")
     set_kind("binary")
+    set_languages("c++17")
     add_files("src/**.cpp")
     add_includedirs("src")
     add_includedirs("vendor")

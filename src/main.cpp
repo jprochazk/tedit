@@ -6,15 +6,22 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <iostream>
 #include <string>
+#include <filesystem>
 #include <spdlog/spdlog.h>
 #include "gfx/window.hpp"
+#include "gfx/image.hpp"
+
+namespace fs = std::filesystem;
 
 int
 main(void)
 {
     Window window("Test Window", 1600, 900);
 
-    
+    fs::current_path("C:\\Users\\Honza\\game dev\\tedit");
+    Image img("AYAYA.png", GL_TEXTURE_2D);
+
+    spdlog::info("img {}, {}:{}", img.getHandle(), img.getWidth(), img.getHeight());
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -30,9 +37,6 @@ main(void)
 
     /* Loop until the user closes the window */
     while (!window.shouldClose()) {
-        window.setTitle(
-          fmt::format("Application average {:.3f} ms/frame ({:.1f} FPS)", 1000.0f / io.Framerate, io.Framerate));
-
         /* Poll for and process events */
         glfwPollEvents();
 
@@ -48,22 +52,20 @@ main(void)
             static float f = 0.0f;
             static int counter = 0;
 
-            ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
-
-            ImGui::Text("This is some useful text.");          // Display some text (you can use a format strings too)
+            ImGui::Begin("Hello, world!");            // Create a window called "Hello, world!" and append into it.
+            ImGui::Text("This is some useful text."); // Display some text (you can use a format strings too)
             ImGui::Checkbox("Demo Window", &show_demo_window); // Edit bools storing our window open/close state
             ImGui::Checkbox("Another Window", &show_another_window);
-
             ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
             ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
-
             if (ImGui::Button(
                   "Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;
             ImGui::SameLine();
             ImGui::Text("counter = %d", counter);
-
             ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+            ImGui::Image((void*)img.getHandle(), ImVec2(img.getWidth(), img.getHeight()), ImVec2(0, 1), ImVec2(1, 0));
+
             ImGui::End();
         }
 
