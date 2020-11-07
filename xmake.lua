@@ -5,11 +5,13 @@ add_rules("mode.debug", "mode.release")
 add_requires("glfw >=3.3.2")
 -- or from conan (among others)
 add_requires("CONAN::glm/0.9.9.8", { alias = "glm" })
+add_requires("CONAN::stb/20200203", { alias = "stb" })
+add_requires("CONAN::spdlog/1.8.0", { alias = "spdlog" })
 
 -- create a target
 target("tedit")
     set_kind("binary")
-    add_files("src/*.cpp")
+    add_files("src/**.cpp")
     add_includedirs("src")
     add_includedirs("vendor")
 
@@ -27,3 +29,5 @@ target("tedit")
     -- and link the dependencies we brought in
     add_packages("glfw")
     add_packages("glm")
+    add_packages("stb")
+    add_packages("spdlog")

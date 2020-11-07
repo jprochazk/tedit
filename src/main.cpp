@@ -6,44 +6,20 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 #include <iostream>
 #include <string>
-
-static void
-glfw_error_callback(int error, const char* description)
-{
-    fprintf(stderr, "Glfw Error %d: %s\n", error, description);
-}
+#include <spdlog/spdlog.h>
+#include "gfx/window.hpp"
 
 int
 main(void)
 {
-    glfwSetErrorCallback(glfw_error_callback);
-    if (!glfwInit())
-        return -1;
+    Window window("Test Window", 1600, 900);
 
-    GLFWwindow* window;
-
-    /* Create a windowed mode window and its OpenGL context */
-    window = glfwCreateWindow(1600, 900, "Hello World", NULL, NULL);
-    if (!window) {
-        glfwTerminate();
-        return -1;
-    }
-
-    /* Make the window's context current */
-    glfwMakeContextCurrent(window);
-    glfwSwapInterval(1); // Enable vsync
-
-    if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress)) {
-        std::cout << "Failed to initialize GLAD" << std::endl;
-        return -1;
-    }
-
-    glClearColor(0.5, 0.3, 0.5, 1.0);
+    
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplGlfw_InitForOpenGL(window.getHandle(), true);
     ImGui_ImplOpenGL3_Init(NULL);
 
     ImGuiIO& io = ImGui::GetIO();
@@ -53,7 +29,10 @@ main(void)
     ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 
     /* Loop until the user closes the window */
-    while (!glfwWindowShouldClose(window)) {
+    while (!window.shouldClose()) {
+        window.setTitle(
+          fmt::format("Application average {:.3f} ms/frame ({:.1f} FPS)", 1000.0f / io.Framerate, io.Framerate));
+
         /* Poll for and process events */
         glfwPollEvents();
 
@@ -84,9 +63,7 @@ main(void)
             ImGui::SameLine();
             ImGui::Text("counter = %d", counter);
 
-            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)",
-                        1000.0f / ImGui::GetIO().Framerate,
-                        ImGui::GetIO().Framerate);
+            ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
             ImGui::End();
         }
 
@@ -103,22 +80,17 @@ main(void)
 
         // Rendering
         ImGui::Render();
-        int display_w, display_h;
-        glfwGetFramebufferSize(window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
         glClearColor(clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         glClear(GL_COLOR_BUFFER_BIT);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
         /* Swap front and back buffers */
-        glfwSwapBuffers(window);
+        window.swapBuffers();
     }
 
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
-    glfwDestroyWindow(window);
-    glfwTerminate();
     return 0;
 }
