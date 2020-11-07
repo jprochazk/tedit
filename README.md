@@ -22,7 +22,7 @@ $ xmake run
 
 ### Why XMake?
 
-Because I refuse to deal with CMake's awful syntax, complexity, and slow builds. There are many better alternatives for modern projects.
+Because for my purposes, this is the best option in terms of maintainability, flexibility and effiency:
 
 1. The `xmake` file is in written [Lua](http://www.lua.org/), which is a simple, readable, yet powerful scripting language.
 2. Builds your project [as fast](https://xmake.io/#/getting_started?id=build-as-fast-as-ninja) as the [`ninja`](https://ninja-build.org/) build system
