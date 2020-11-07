@@ -1,12 +1,24 @@
 add_rules("mode.debug", "mode.release")
---add_requires("CONAN::glfw/3.3.2", { alias = "glfw" })
+
 add_requires("glfw >=3.3.2")
 add_requires("CONAN::glm/0.9.9.8", { alias = "glm" })
 
 target("tedit")
     set_kind("binary")
-    add_files("src/*.cpp", "src/gfx/glad/glad.c")
+    add_files("src/*.cpp")
     add_includedirs("src")
+    add_includedirs("vendor")
+
+    -- glad
+    add_files("vendor/glad/glad/glad.c")
+    add_includedirs("vendor/glad")
+
+    -- imgui
+    add_files("vendor/imgui/*.cpp")
+    add_files("vendor/imgui/backends/imgui_impl_opengl3.cpp")
+    add_files("vendor/imgui/backends/imgui_impl_glfw.cpp")
+    add_includedirs("vendor/imgui")
+
     add_packages("glfw")
     add_packages("glm")
 
