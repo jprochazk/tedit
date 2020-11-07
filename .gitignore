@@ -1,6 +1,9 @@
-imgui.ini
-.vscode
-*.exe
+# Xmake cache
+.xmake/
+build/
 
-# its GPLv3 so i dont want to redistribute it :)
-TILESET.png
+# MacOS Cache
+.DS_Store
+
+# vscode
+.vscode/
