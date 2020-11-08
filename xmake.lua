@@ -7,6 +7,7 @@ add_requires("glfw >=3.3.2")
 add_requires("CONAN::glm/0.9.9.8", { alias = "glm" })
 add_requires("CONAN::stb/20200203", { alias = "stb" })
 add_requires("CONAN::spdlog/1.8.0", { alias = "spdlog" })
+add_requires("CONAN::simdjson/0.6.1", { alias = "simdjson" })
 
 -- create a target
 target("tedit")
@@ -15,6 +16,8 @@ target("tedit")
     add_files("src/**.cpp")
     add_includedirs("src")
     add_includedirs("vendor")
+
+    set_pcxxheader("src/pch.h")
 
     -- include files from any source
     -- glad
@@ -32,3 +35,4 @@ target("tedit")
     add_packages("glm")
     add_packages("stb")
     add_packages("spdlog")
+    add_packages("simdjson")

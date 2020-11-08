@@ -2,8 +2,7 @@
 #include "image.hpp"
 
 Image::Image(const std::string& uri, GLenum type, ImageOptions options)
-  : uri(uri)
-  , handle(-1)
+  : handle(-1)
   , width(0)
   , height(0)
   , type(type)
@@ -46,26 +45,24 @@ Image::detach() const
     glBindTexture(this->type, NULL);
 }
 
-std::string
-Image::getURI() const
-{
-    return this->uri;
-}
 GLuint
 Image::getHandle() const
 {
     return this->handle;
 }
+
 int
 Image::getWidth() const
 {
     return this->width;
 }
+
 int
 Image::getHeight() const
 {
     return this->height;
 }
+
 GLenum
 Image::getType() const
 {

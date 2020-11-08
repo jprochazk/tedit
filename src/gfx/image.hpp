@@ -1,10 +1,9 @@
 #ifndef TEDIT_IMAGE_
 #define TEDIT_IMAGE_
 
+#include "pch.h"
 #include "gfx/gl.h"
 #include <stb_image.h>
-#include <cassert>
-#include <string>
 
 struct ImageOptions
 {
@@ -23,14 +22,12 @@ public:
     void attach(GLenum slot) const;
     void detach() const;
 
-    std::string getURI() const;
     GLuint getHandle() const;
     int getWidth() const;
     int getHeight() const;
     GLenum getType() const;
 
 private:
-    std::string uri;
     GLuint handle;
     int width;
     int height;
