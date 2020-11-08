@@ -6,19 +6,19 @@
 // window instance for event listeners
 static Window* window = nullptr;
 
-void
+static void
 global_HandleGLFWMouseMove(GLFWwindow*, double xpos, double ypos)
 {
     window->onMouseMove(xpos, ypos);
 }
 
-void
+static void
 global_HandleGLFWMouseButton(GLFWwindow*, int button, int action, int modifiers)
 {
     window->onMouseButton(button, action, modifiers);
 }
 
-void
+static void
 global_HandleGLFWKey(GLFWwindow*, int key, int scancode, int action, int modifiers)
 {
     window->onKey(key, scancode, action, modifiers);
