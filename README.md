@@ -6,7 +6,7 @@ It uses:
 * [`GLFW`](https://www.glfw.org/) for window and input handling
 * [`OpenGL`](https://www.opengl.org/) for rendering
 * [`ImGUI`](https://github.com/ocornut/imgui) for UI rendering
-* [`SimdJson`](https://github.com/simdjson/simdjson) for json serialization/deserialization
+* [`simdjson`](https://github.com/simdjson/simdjson) for json serialization/deserialization
 * [`STB`](https://github.com/nothings/stb) for image loading
 * [`GLM`](https://glm.g-truc.net/0.9.9/index.html) for vector mathematics
 
