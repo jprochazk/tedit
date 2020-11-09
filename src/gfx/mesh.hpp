@@ -1,8 +1,8 @@
-#ifndef TEDIT_MESH_
-#define TEDIT_MESH_
-
 #include "pch.h"
-#include "gfx/gl.h"
+#ifndef TEDIT_MESH_
+#    define TEDIT_MESH_
+
+#    include "gfx/gl.h"
 
 struct Attribute
 {
@@ -23,8 +23,8 @@ public:
     void draw(GLenum mode) const;
 
 private:
-    GLuint vbo, ebo, vao;
-    int count;
+    GLuint vbo_, ebo_, vao_;
+    int count_;
 }; // class Mesh
 
 #endif // TEDIT_MESH_

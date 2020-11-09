@@ -43,15 +43,15 @@ std::vector<Attribute> attributes = {
 // clang-format on
 
 Renderer::Renderer()
-  : shader(SHADER_VSRC, SHADER_FSRC)
-  , mesh(vertices, indices, attributes)
-  , commands()
+  : shader_(SHADER_VSRC, SHADER_FSRC)
+  , mesh_(vertices, indices, attributes)
+  , commands_()
 {
-    this->uProj = shader.getUniform("uProj");
-    this->uView = shader.getUniform("uView");
-    this->uModel = shader.getUniform("uModel");
-    this->uUV = shader.getUniform("uUV");
-    this->uTexture = shader.getUniform("uTexture");
+    this->uProj_ = this->shader_.uniform("uProj");
+    this->uView_ = this->shader_.uniform("uView");
+    this->uModel_ = this->shader_.uniform("uModel");
+    this->uUV_ = this->shader_.uniform("uUV");
+    this->uTexture_ = this->shader_.uniform("uTexture");
 }
 
 void
@@ -64,37 +64,37 @@ Renderer::begin(Window& window)
     glClear(GL_COLOR_BUFFER_BIT);
 
     // TODO: get these from camera
-    float hw = (float)window.getWidth() / 2.f;
-    float hh = (float)window.getHeight() / 2.f;
+    float hw = (float)window.width() / 2.f;
+    float hh = (float)window.height() / 2.f;
     glm::mat4 projection = glm::ortho(hw, -hw, -hh, hh, -1.f, 1.f);
     glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f));
 
-    this->shader.attach();
-    glUniformMatrix4fv(this->uProj.location, 1, false, glm::value_ptr(projection));
-    glUniformMatrix4fv(this->uView.location, 1, false, glm::value_ptr(view));
-    this->mesh.attach();
+    this->shader_.attach();
+    glUniformMatrix4fv(this->uProj_.location, 1, false, glm::value_ptr(projection));
+    glUniformMatrix4fv(this->uView_.location, 1, false, glm::value_ptr(view));
+    this->mesh_.attach();
 }
 
 void
 Renderer::draw(Image* image, glm::vec4 uv, glm::mat4 model)
 {
-    this->commands.push_back(Command{ image, uv, model });
+    this->commands_.push_back(Command{ image, uv, model });
 }
 
 void
 Renderer::flush()
 {
-    GLuint lastTexture = static_cast<GLuint>(-1);
-    for (const auto& command : this->commands) {
-        if (GLuint texture = command.image->getHandle(); texture != lastTexture) {
+    static GLuint lastTexture = static_cast<GLuint>(-1);
+    for (const auto& command : this->commands_) {
+        if (GLuint texture = command.image->handle(); texture != lastTexture) {
             lastTexture = texture;
             command.image->attach(GL_TEXTURE0);
-            glUniform1i(this->uTexture.location, 0);
+            glUniform1i(this->uTexture_.location, 0);
         }
-        glUniform4fv(this->uUV.location, 1, glm::value_ptr(command.uv));
-        glUniformMatrix4fv(this->uModel.location, 1, false, glm::value_ptr(command.model));
+        glUniform4fv(this->uUV_.location, 1, glm::value_ptr(command.uv));
+        glUniformMatrix4fv(this->uModel_.location, 1, false, glm::value_ptr(command.model));
 
-        this->mesh.draw(GL_TRIANGLES);
+        this->mesh_.draw(GL_TRIANGLES);
     }
-    this->commands.clear();
+    this->commands_.clear();
 }

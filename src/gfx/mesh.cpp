@@ -26,24 +26,24 @@ gl_sizeof(GLenum type)
 Mesh::Mesh(const std::vector<float>& vertices,
            const std::vector<uint32_t>& indices,
            const std::vector<Attribute>& attributes)
-  : vbo()
-  , ebo()
-  , vao()
-  , count(indices.size())
+  : vbo_()
+  , ebo_()
+  , vao_()
+  , count_(indices.size())
 {
-    glGenBuffers(1, &this->vbo);
-    glGenBuffers(1, &this->ebo);
-    glGenVertexArrays(1, &this->vao);
+    glGenBuffers(1, &this->vbo_);
+    glGenBuffers(1, &this->ebo_);
+    glGenVertexArrays(1, &this->vao_);
 
     // vertex array
-    glBindVertexArray(this->vao);
+    glBindVertexArray(this->vao_);
 
     // index buffer
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, this->ebo_);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int) * indices.size(), indices.data(), GL_STATIC_DRAW);
 
     // vertex buffer
-    glBindBuffer(GL_ARRAY_BUFFER, this->vbo);
+    glBindBuffer(GL_ARRAY_BUFFER, this->vbo_);
     glBufferData(GL_ARRAY_BUFFER, sizeof(float) * vertices.size(), vertices.data(), GL_STATIC_DRAW);
 
     // calculate attribute stride
@@ -68,19 +68,19 @@ Mesh::Mesh(const std::vector<float>& vertices,
 
 Mesh::~Mesh()
 {
-    glDeleteBuffers(1, &this->vbo);
-    glDeleteBuffers(1, &this->ebo);
-    glDeleteVertexArrays(1, &this->vao);
+    glDeleteBuffers(1, &this->vbo_);
+    glDeleteBuffers(1, &this->ebo_);
+    glDeleteVertexArrays(1, &this->vao_);
 }
 
 void
 Mesh::attach() const
 {
-    glBindVertexArray(this->vao);
+    glBindVertexArray(this->vao_);
 }
 
 void
 Mesh::draw(GLenum mode) const
 {
-    glDrawElements(mode, this->count, GL_UNSIGNED_INT, NULL);
+    glDrawElements(mode, this->count_, GL_UNSIGNED_INT, NULL);
 }

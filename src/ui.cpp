@@ -1,4 +1,5 @@
 
+#include "pch.h"
 #include "ui.hpp"
 #include "window.hpp"
 #include "tile.hpp"
@@ -41,11 +42,14 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
 
     if (ImGui::BeginMenuBar()) {
         if (ImGui::BeginMenu("File")) {
+            if (ImGui::MenuItem("New", "CTRL+N")) {
+                context->dialog(Dialog::NEW);
+            }
             if (ImGui::MenuItem("Save", "CTRL+S")) {
-                context->openDialog(Dialog::SAVE);
+                context->dialog(Dialog::SAVE);
             }
             if (ImGui::MenuItem("Open", "CTRL+O")) {
-                context->openDialog(Dialog::OPEN);
+                context->dialog(Dialog::OPEN);
             }
             ImGui::EndMenu();
         }
@@ -56,10 +60,10 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
 }
 
 Context::Context(Window* window)
-  : window(window)
-  , state()
+  : window_(window)
+  , state_()
 {
-    Init_ImGUI(this->window->getHandle());
+    Init_ImGUI(this->window_->handle());
 }
 
 Context::~Context()
@@ -85,7 +89,7 @@ Context::render()
 }
 
 void
-Context::openDialog(Dialog dialog)
+Context::dialog(Dialog dialog)
 {
     switch (dialog) {
         case Dialog::SAVE: {
@@ -100,15 +104,15 @@ Context::openDialog(Dialog dialog)
 }
 
 ContextState&
-Context::getState()
+Context::state()
 {
-    return this->state;
+    return this->state_;
 }
 
 const ContextState&
-Context::getState() const
+Context::state() const
 {
-    return this->state;
+    return this->state_;
 }
 
 }; // namespace ui

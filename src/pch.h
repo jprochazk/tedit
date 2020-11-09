@@ -11,11 +11,18 @@
 #include <memory>
 #include <atomic>
 #include <functional>
+#include <optional>
 #include <array>
 #include <vector>
 #include <string>
 #include <map>
+#include <set>
 #include <unordered_map>
+#include <unordered_set>
+#include <fstream>
+#include <sstream>
+#include <filesystem>
+namespace fs = std::filesystem;
 
 // GLM
 #include <glm/glm.hpp>
@@ -26,8 +33,9 @@
 // spdlog
 #include <spdlog/spdlog.h>
 
-// simdjson
-#include <simdjson.h>
+// json
+#include <nlohmann/json.hpp>
+using json = nlohmann::json;
 // clang-format on
 
 #endif // TEDIT_PCH_

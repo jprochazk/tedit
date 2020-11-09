@@ -1,8 +1,8 @@
-#ifndef TEDIT_UI_
-#define TEDIT_UI_
-
 #include "pch.h"
-#include <imgui.h>
+#ifndef TEDIT_UI_
+#    define TEDIT_UI_
+
+#    include <imgui.h>
 
 // forward declarations
 class Window;
@@ -15,8 +15,9 @@ namespace ui {
 
 enum Dialog : uint8_t
 {
-    SAVE = 1 << 0,
-    OPEN = 1 << 1
+    NEW = 1 << 0,
+    SAVE = 1 << 1,
+    OPEN = 1 << 2,
 }; // enum Dialog
 
 struct ContextState
@@ -33,14 +34,14 @@ public:
 
     void render();
 
-    void openDialog(Dialog dialog);
+    void dialog(Dialog dialog);
 
-    ContextState& getState();
+    ContextState& state();
+    const ContextState& state() const;
 
-    const ContextState& getState() const;
-
-    Window* window;
-    ContextState state;
+private:
+    Window* window_;
+    ContextState state_;
 }; // class Context
 
 }; // namespace ui

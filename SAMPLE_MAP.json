@@ -1,0 +1,12 @@
+{
+	"name": "test",
+	"columns": 3,
+	"rows": 3,
+	"tileSize": 32,
+	"tiles": [
+		32, 33, 32,
+		33, 33, 33,
+		33, 33, 33
+	],
+	"tileSets": ["TILESET.png"]
+}

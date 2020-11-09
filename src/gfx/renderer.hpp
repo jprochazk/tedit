@@ -1,10 +1,10 @@
-#ifndef TEDIT_RENDERER_
-#define TEDIT_RENDERER_
-
 #include "pch.h"
-#include "gfx/gl.h"
-#include "gfx/shader.hpp"
-#include "gfx/mesh.hpp"
+#ifndef TEDIT_RENDERER_
+#    define TEDIT_RENDERER_
+
+#    include "gfx/gl.h"
+#    include "gfx/shader.hpp"
+#    include "gfx/mesh.hpp"
 
 class Window;
 class Image;
@@ -40,18 +40,18 @@ public:
 
 private:
     // textured quad shader
-    Shader shader;
+    Shader shader_;
     // quad mesh
-    Mesh mesh;
+    Mesh mesh_;
     // draw command buffer
-    std::vector<Command> commands;
+    std::vector<Command> commands_;
 
     // uniforms
-    Uniform uProj;
-    Uniform uView;
-    Uniform uModel;
-    Uniform uUV;
-    Uniform uTexture;
+    Uniform uProj_;
+    Uniform uView_;
+    Uniform uModel_;
+    Uniform uUV_;
+    Uniform uTexture_;
 }; // class Renderer
 
 #endif // TEDIT_RENDERER_

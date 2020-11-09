@@ -1,8 +1,8 @@
-#ifndef TEDIT_SHADER_
-#define TEDIT_SHADER_
-
 #include "pch.h"
-#include "gfx/gl.h"
+#ifndef TEDIT_SHADER_
+#    define TEDIT_SHADER_
+
+#    include "gfx/gl.h"
 
 struct Uniform
 {
@@ -22,13 +22,13 @@ public:
     void attach() const;
     void detach() const;
 
-    GLuint getHandle() const;
-    const Uniform& getUniform(const std::string& name) const;
-    const std::unordered_map<std::string, Uniform>& getUniforms() const;
+    GLuint handle() const;
+    const Uniform& uniform(const std::string& name) const;
+    const std::unordered_map<std::string, Uniform>& uniforms() const;
 
 private:
-    GLuint handle;
-    std::unordered_map<std::string, Uniform> uniforms;
+    GLuint handle_;
+    std::unordered_map<std::string, Uniform> uniforms_;
 }; // class Shader
 
 #endif // TEDIT_SHADER_

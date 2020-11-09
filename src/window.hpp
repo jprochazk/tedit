@@ -1,7 +1,6 @@
-#ifndef TEDIT_WINDOW_
-#define TEDIT_WINDOW_
-
 #include "pch.h"
+#ifndef TEDIT_WINDOW_
+#    define TEDIT_WINDOW_
 
 struct GLFWwindow;
 
@@ -21,9 +20,9 @@ public:
 
     void setTitle(const std::string& title);
 
-    GLFWwindow* getHandle() const;
-    int getWidth() const;
-    int getHeight() const;
+    GLFWwindow* handle() const;
+    int width() const;
+    int height() const;
 
     /**
      * @param listener arguments are (xpos, ypos)
@@ -44,17 +43,17 @@ public:
     void onResize(int width, int height);
 
 private:
-    GLFWwindow* handle;
-    std::string title;
-    int width;
-    int height;
+    GLFWwindow* handle_;
+    std::string title_;
+    int width_;
+    int height_;
 
     struct
     {
         std::vector<std::function<void(double, double)>> mouseMove;
         std::vector<std::function<void(int, int, int)>> mouseButton;
         std::vector<std::function<void(int, int, int)>> key;
-    } listeners;
+    } listeners_;
 }; // class Window
 
 #endif // TEDIT_WINDOW_

@@ -51,8 +51,8 @@ queryUniforms(GLuint handle, std::unordered_map<std::string, Uniform>& uniforms)
 }
 
 Shader::Shader(const std::string& vsrc, const std::string& fsrc)
-  : handle(0)
-  , uniforms()
+  : handle_(0)
+  , uniforms_()
 {
 
     GLuint vertex = glCreateShader(GL_VERTEX_SHADER);
@@ -67,27 +67,27 @@ Shader::Shader(const std::string& vsrc, const std::string& fsrc)
     checkShader(vertex);
     checkShader(fragment);
     // link program
-    this->handle = glCreateProgram();
-    glAttachShader(this->handle, vertex);
-    glAttachShader(this->handle, fragment);
-    glLinkProgram(this->handle);
-    checkProgram(this->handle);
+    this->handle_ = glCreateProgram();
+    glAttachShader(this->handle_, vertex);
+    glAttachShader(this->handle_, fragment);
+    glLinkProgram(this->handle_);
+    checkProgram(this->handle_);
     // discard intermediates
     glDeleteShader(vertex);
     glDeleteShader(fragment);
 
-    queryUniforms(this->handle, this->uniforms);
+    queryUniforms(this->handle_, this->uniforms_);
 }
 
 Shader::~Shader()
 {
-    glDeleteProgram(this->handle);
+    glDeleteProgram(this->handle_);
 }
 
 void
 Shader::attach() const
 {
-    glUseProgram(this->handle);
+    glUseProgram(this->handle_);
 }
 
 void
@@ -97,19 +97,19 @@ Shader::detach() const
 }
 
 GLuint
-Shader::getHandle() const
+Shader::handle() const
 {
-    return this->handle;
+    return this->handle_;
 }
 
 const Uniform&
-Shader::getUniform(const std::string& name) const
+Shader::uniform(const std::string& name) const
 {
-    return this->uniforms.at(name);
+    return this->uniforms_.at(name);
 }
 
 const std::unordered_map<std::string, Uniform>&
-Shader::getUniforms() const
+Shader::uniforms() const
 {
-    return this->uniforms;
+    return this->uniforms_;
 }

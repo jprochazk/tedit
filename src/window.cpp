@@ -37,11 +37,11 @@ onError(int error, const char* description)
 }
 
 Window::Window(const std::string& title, int width, int height)
-  : handle(nullptr)
-  , title(title)
-  , width(width)
-  , height(height)
-  , listeners()
+  : handle_(nullptr)
+  , title_(title)
+  , width_(width)
+  , height_(height)
+  , listeners_()
 {
     glfwSetErrorCallback(onError);
     assert(glfwInit());
@@ -53,15 +53,15 @@ Window::Window(const std::string& title, int width, int height)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    this->handle = glfwCreateWindow(this->width, this->height, this->title.c_str(), NULL, NULL);
-    assert(this->handle);
+    this->handle_ = glfwCreateWindow(this->width_, this->height_, this->title_.c_str(), NULL, NULL);
+    assert(this->handle_);
 
-    glfwSetCursorPosCallback(this->handle, ::global_HandleGLFWMouseMove);
-    glfwSetMouseButtonCallback(this->handle, ::global_HandleGLFWMouseButton);
-    glfwSetKeyCallback(this->handle, ::global_HandleGLFWKey);
-    glfwSetFramebufferSizeCallback(this->handle, ::global_HandleGLFWResize);
+    glfwSetCursorPosCallback(this->handle_, ::global_HandleGLFWMouseMove);
+    glfwSetMouseButtonCallback(this->handle_, ::global_HandleGLFWMouseButton);
+    glfwSetKeyCallback(this->handle_, ::global_HandleGLFWKey);
+    glfwSetFramebufferSizeCallback(this->handle_, ::global_HandleGLFWResize);
 
-    glfwMakeContextCurrent(this->handle);
+    glfwMakeContextCurrent(this->handle_);
     glfwSwapInterval(1); // Enable vsync
 
     assert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress));
@@ -72,7 +72,7 @@ Window::Window(const std::string& title, int width, int height)
 
 Window::~Window()
 {
-    glfwDestroyWindow(this->handle);
+    glfwDestroyWindow(this->handle_);
     glfwTerminate();
 }
 
@@ -85,68 +85,68 @@ Window::pollInput()
 void
 Window::close()
 {
-    glfwSetWindowShouldClose(this->handle, GLFW_TRUE);
+    glfwSetWindowShouldClose(this->handle_, GLFW_TRUE);
 }
 
 bool
 Window::shouldClose() const
 {
-    return glfwWindowShouldClose(this->handle);
+    return glfwWindowShouldClose(this->handle_);
 }
 
 void
 Window::swapBuffers()
 {
-    glfwSwapBuffers(this->handle);
+    glfwSwapBuffers(this->handle_);
 }
 
 void
 Window::setTitle(const std::string& title)
 {
-    this->title = title;
-    glfwSetWindowTitle(this->handle, this->title.c_str());
+    this->title_ = title;
+    glfwSetWindowTitle(this->handle_, this->title_.c_str());
 }
 
 GLFWwindow*
-Window::getHandle() const
+Window::handle() const
 {
-    return this->handle;
+    return this->handle_;
 }
 
 int
-Window::getWidth() const
+Window::width() const
 {
-    return this->width;
+    return this->width_;
 }
 
 int
-Window::getHeight() const
+Window::height() const
 {
-    return this->height;
+    return this->height_;
 }
 
 void
 Window::addMouseMoveListener(std::function<void(double, double)> listener)
 {
-    this->listeners.mouseMove.emplace_back(listener);
+    this->listeners_.mouseMove.emplace_back(listener);
 }
 
 void
 Window::addMouseButtonListener(std::function<void(int, int, int)> listener)
 {
-    this->listeners.mouseButton.emplace_back(listener);
+    this->listeners_.mouseButton.emplace_back(listener);
 }
 
 void
 Window::addKeyListener(std::function<void(int, int, int)> listener)
 {
-    this->listeners.key.emplace_back(listener);
+    this->listeners_.key.emplace_back(listener);
 }
 
 void
 Window::onMouseMove(double xpos, double ypos)
 {
-    for (const auto& listener : this->listeners.mouseMove) {
+    for (const auto& listener : this->listeners_.mouseMove) {
         listener(xpos, ypos);
     }
 }
@@ -154,7 +154,7 @@ Window::onMouseMove(double xpos, double ypos)
 void
 Window::onMouseButton(int button, int action, int modifiers)
 {
-    for (const auto& listener : this->listeners.mouseButton) {
+    for (const auto& listener : this->listeners_.mouseButton) {
         listener(button, action, modifiers);
     }
 }
@@ -162,7 +162,7 @@ Window::onMouseButton(int button, int action, int modifiers)
 void
 Window::onKey(int key, int /* scancode */, int action, int modifiers)
 {
-    for (const auto& listener : this->listeners.key) {
+    for (const auto& listener : this->listeners_.key) {
         listener(key, action, modifiers);
     }
 }
@@ -170,7 +170,7 @@ Window::onKey(int key, int /* scancode */, int action, int modifiers)
 void
 Window::onResize(int width, int height)
 {
-    this->width = width;
-    this->height = height;
+    this->width_ = width;
+    this->height_ = height;
     glViewport(0, 0, width, height);
 }

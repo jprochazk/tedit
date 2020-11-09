@@ -1,9 +1,9 @@
-#ifndef TEDIT_IMAGE_
-#define TEDIT_IMAGE_
-
 #include "pch.h"
-#include "gfx/gl.h"
-#include <stb_image.h>
+#ifndef TEDIT_IMAGE_
+#    define TEDIT_IMAGE_
+
+#    include "gfx/gl.h"
+#    include <stb_image.h>
 
 struct ImageOptions
 {
@@ -22,17 +22,17 @@ public:
     void attach(GLenum slot) const;
     void detach() const;
 
-    GLuint getHandle() const;
-    int getWidth() const;
-    int getHeight() const;
-    GLenum getType() const;
+    GLuint handle() const;
+    int width() const;
+    int height() const;
+    GLenum type() const;
 
 private:
-    GLuint handle;
-    int width;
-    int height;
-    int channels;
-    GLenum type;
+    GLuint handle_;
+    int width_;
+    int height_;
+    int channels_;
+    GLenum type_;
 }; // class Image
 
 #endif // TEDIT_IMAGE_
