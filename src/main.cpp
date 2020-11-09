@@ -47,11 +47,7 @@ main(void)
         std::cout << std::endl;
     }
 
-    try {
-        tile::TileMap::Save(*tilemap, "SAMPLE_MAP2.json");
-    } catch (std::exception& ex) {
-        std::cerr << "[ERROR]: " << ex.what() << std::endl;
-    }
+    tile::TileMap::Save(*tilemap, "SAMPLE_MAP2.json");
 
     /* Loop until the user closes the window */
     while (!window.shouldClose()) {

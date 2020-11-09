@@ -52,14 +52,11 @@ Mesh::Mesh(const std::vector<float>& vertices,
         stride += gl_sizeof(attribute.type) * attribute.size;
     }
 
-    spdlog::info("mesh stride: {}", stride);
-
     // vertex buffer descriptors
     int offset = 0;
     for (const auto& attribute : attributes) {
         glVertexAttribPointer(attribute.location, attribute.size, attribute.type, false, stride, (void*)offset);
         glEnableVertexAttribArray(attribute.location);
-        spdlog::info("offset {}", offset);
         offset += gl_sizeof(attribute.type) * attribute.size;
     }
 

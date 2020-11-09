@@ -92,6 +92,10 @@ void
 Context::dialog(Dialog dialog)
 {
     switch (dialog) {
+        case Dialog::NEW: {
+            spdlog::info("Dialog::NEW");
+            break;
+        }
         case Dialog::SAVE: {
             spdlog::info("Dialog::SAVE");
             break;
