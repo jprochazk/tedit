@@ -6,9 +6,10 @@ It uses:
 * [`GLFW`](https://www.glfw.org/) for window and input handling
 * [`OpenGL`](https://www.opengl.org/) for rendering
 * [`ImGUI`](https://github.com/ocornut/imgui) for UI rendering
-* [`simdjson`](https://github.com/simdjson/simdjson) for json serialization/deserialization
+* [`JSON for Modern C++`](https://github.com/nlohmann/json) for serialization/deserialization
 * [`STB`](https://github.com/nothings/stb) for image loading
 * [`GLM`](https://glm.g-truc.net/0.9.9/index.html) for vector mathematics
+* [`Portable File Dialogs`](https://github.com/samhocevar/portable-file-dialogs) for native cross-platform save/open file dialogs
 
 ## Features
 
