@@ -37,9 +37,9 @@ void
 Dialog_AddTileSet(Context* context, ImGuiIO& io)
 {
     auto* tilemap = context->state().tileMap;
+    // we should not open the dialog if there is no open tileMap.
     assert(tilemap != nullptr);
     auto callback = [=](bool success, std::vector<std::string>& input) {
-        // we should not open the dialog if there is no open tileMap.
         context->microtask([=] {
             if (success) {
                 std::vector<std::string> selection = input;
@@ -174,7 +174,7 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
             }
             // zoom
             if (is_hovered) {
-                zoom = std::clamp(zoom + io.MouseWheel / 10.0f, 0.1f, 5.0f);
+                zoom = std::clamp(zoom - io.MouseWheel / 10.0f, 0.1f, 5.0f);
             }
 
             // Get selected tileset image

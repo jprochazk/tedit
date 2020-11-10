@@ -42,12 +42,3 @@ TaskQueue::poll()
         }
     }
 }
-
-/* void
-TaskQueue::poll_one()
-{
-    if (!this->empty()) {
-        Task task = dequeue_one(queue_);
-        task();
-    }
-} */

@@ -84,7 +84,7 @@ Renderer::draw(const Image* image, glm::vec4 uv, glm::mat4 model)
 void
 Renderer::flush()
 {
-    static GLuint lastTexture = static_cast<GLuint>(-1);
+    GLuint lastTexture = static_cast<GLuint>(-1);
     for (const auto& command : this->commands_) {
         if (GLuint texture = command.image->handle(); texture != lastTexture) {
             lastTexture = texture;

@@ -3,11 +3,14 @@
 #include "image.hpp"
 
 Image::Image(const std::string& uri, GLenum type, ImageOptions options)
-  : handle_(-1)
-  , width_(0)
-  , height_(0)
+  : handle_()
+  , width_()
+  , height_()
   , type_(type)
 {
+    static std::thread::id gl_thread_id = std::this_thread::get_id();
+    assert(std::this_thread::get_id() == gl_thread_id);
+
     // load image data
     stbi_set_flip_vertically_on_load(true);
     uint8_t* data = stbi_load(uri.c_str(), &this->width_, &this->height_, &this->channels_, 0);
@@ -23,6 +26,9 @@ Image::Image(const std::string& uri, GLenum type, ImageOptions options)
     glTexParameteri(type, GL_TEXTURE_MAG_FILTER, options.filter_mag);
     glTexImage2D(type, 0, GL_RGBA, this->width_, this->height_, 0, GL_RGBA, GL_UNSIGNED_BYTE, &data[0]);
     glGenerateMipmap(type);
+    glBindTexture(type, NULL);
+
+    spdlog::info("New Image, handle#{}, {}:{}", this->handle_, this->width_, this->height_);
 
     // free image data
     stbi_image_free(data);

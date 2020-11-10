@@ -19,6 +19,8 @@ TODO: camera
 TODO: painting tiles with pencil-like tool (make this generic to allow for other tools?)
 -> tilemap[hovered_tile.x, hovered_tile.y] = currentTile
 
+TODO: allow rotating tiles
+
 TODO: new/save/save as/load dialogs for tilemaps
 * new       -> tilemap name, starting size, tile size
 

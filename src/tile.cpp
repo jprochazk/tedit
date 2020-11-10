@@ -100,6 +100,7 @@ TileMap::TileMap(const std::string& name, uint32_t columns, uint32_t rows, uint3
 void
 TileMap::add(TileSet* tileset)
 {
+    spdlog::info("Added TileSet {}@{} to TileMap {}", tileset->source(), (void*)tileset, this->name());
     this->tileSets_.push_back(tileset);
     this->tileSetPaths_.push_back(tileset->source());
 }
@@ -260,9 +261,7 @@ TileMap::Load(const std::string& path)
         out.tileSize_ = tileSize;
         out.tiles_ = std::move(tiles);
         out.tileSets_ = std::move(tileSets);
-        assert(out.tileSets_.capacity() == columns * rows);
         out.tileSetPaths_ = std::move(tileSetPaths);
-        assert(out.tileSetPaths_.capacity() == columns * rows);
         return out;
     } catch (std::exception& ex) {
         spdlog::error("Error while loading tile map {}, {}", path, ex.what());
