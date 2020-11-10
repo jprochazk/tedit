@@ -28,6 +28,8 @@ struct ContextState
     tile::TileMap* tileMap = nullptr;
     tile::Tile currentTile = 0;
     int tileSetIndex = 0;
+    bool hasMouseFocus = false;
+    bool hasKeyboardFocus = false;
 }; // struct ContextState
 
 class Context

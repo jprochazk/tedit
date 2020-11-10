@@ -126,10 +126,6 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
             spdlog::info("Add tileset");
             Dialog_AddTileSet(context, io);
         }
-        ImGui::SameLine();
-        if (ImGui::SmallButton("-")) {
-            spdlog::info("Remove tileset");
-        }
     }
     { // tileset display
         std::vector<tile::TileSet*>* tilesets = nullptr;
@@ -181,18 +177,23 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
             auto* currentTileSetAtlas = &((*tilesets)[state.tileSetIndex]->atlas());
 
             if (is_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                auto tilesPerRow = (float)currentTileSetAtlas->width() / (float)tilemap->tileSize();
                 // calculate mouse pos on atlas
                 auto mx = (mouse_pos_in_display.x) * zoom;
                 auto my = -(mouse_pos_in_display.y - display_sz.y) * zoom;
-                // get hovered tile ID
-                auto tileSetId = state.tileSetIndex;
-                auto tile_x = mx / tilemap->tileSize();
-                auto tile_y = my / tilemap->tileSize();
-                auto tile_id = std::floorf(tile_y) + std::floorf(tile_x) * tilesPerRow;
-                state.currentTile = 0;
-                tile::TileSetId(state.currentTile, state.tileSetIndex);
-                tile::TileId(state.currentTile, tile_id);
+
+                auto atlasW = (float)currentTileSetAtlas->width();
+                auto atlasH = (float)currentTileSetAtlas->height();
+                if (mx > 0 && mx < atlasW && my > 0 && my < atlasH) {
+                    auto tilesPerRow = atlasW / (float)tilemap->tileSize();
+                    auto tileSetId = state.tileSetIndex;
+                    // calculate tile ID
+                    auto tile_x = std::floorf(mx / tilemap->tileSize());
+                    auto tile_y = std::floorf(my / tilemap->tileSize());
+                    auto tile_id = tile_y + tile_x * tilesPerRow;
+                    state.currentTile = 0;
+                    tile::TileSetId(state.currentTile, state.tileSetIndex);
+                    tile::TileId(state.currentTile, tile_id);
+                }
             }
 
             draw_list->PushClipRect(display_p0, display_p1, true);
@@ -254,8 +255,10 @@ Context::render()
     ImGui::NewFrame();
 
     ImGui::ShowDemoWindow();
-
     Render_TileSetWindow(this, io);
+
+    this->state_.hasMouseFocus = io.WantCaptureMouse;
+    this->state_.hasKeyboardFocus = io.WantCaptureKeyboard;
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

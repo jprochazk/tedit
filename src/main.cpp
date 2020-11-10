@@ -6,20 +6,12 @@
 
 /*
 
-TODO: investigate existing tiles' tilesets switching when adding tileset
-TODO: remove tileset button logic
-    -> will require looping over all tiles, and setting them to default
-       or something along those lines
-TODO: don't select tile if mouse is past tileset boundary
-
 TODO: camera
 * 2d orthographic top-down
 * pan and zoom by holding/scrolling middle mouse button
 
 TODO: painting tiles with pencil-like tool (make this generic to allow for other tools?)
 -> tilemap[hovered_tile.x, hovered_tile.y] = currentTile
-
-TODO: allow rotating tiles
 
 TODO: new/save/save as/load dialogs for tilemaps
 * new       -> tilemap name, starting size, tile size
@@ -35,8 +27,10 @@ TODO: new/save/save as/load dialogs for tilemaps
 * load      -> open native file dialog
 
 TODO: resize tilemap
-* either manually add rows/columns (tedious)
+* either manually add rows/columns
+    -> tedious, but simpler
 * or automatically update tilemap bounds as new tiles are added/removed
+    -> zero effort, but very complex
 
 */
 
@@ -48,7 +42,25 @@ main(void)
 
     ui::Context context(&window);
 
+    auto tilemap = (*tile::TileMap::Load("SAMPLE_MAP.json"));
+
+    auto& state = context.state();
+    state.tileMap = &tilemap;
+
+    window.addMouseMoveListener([&context, &window](double mouseX, double mouseY) {
+        if (context.state().hasMouseFocus) {
+            return;
+        }
+    });
+    window.addMouseButtonListener([&context, &window](int button, int action, int modifiers) {
+        if (context.state().hasMouseFocus) {
+            return;
+        }
+    });
     window.addKeyListener([&context, &window](int key, int action, int modifiers) {
+        if (context.state().hasKeyboardFocus) {
+            return;
+        }
         // modifiers -> key -> action
         if (modifiers == 0 /* none */) {
             if (key == GLFW_KEY_ESCAPE)
@@ -72,11 +84,6 @@ main(void)
             }
         }
     });
-
-    auto tilemap = (*tile::TileMap::Load("SAMPLE_MAP.json"));
-
-    auto& state = context.state();
-    state.tileMap = &tilemap;
 
     /* Loop until the user closes the window */
     while (!window.shouldClose()) {
