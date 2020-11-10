@@ -13,8 +13,6 @@ calculate_tile_uv(tile::Tile tile, int tileSize, int atlasWidth, int altasHeight
     // height -> (0, height) mapped to (0, 1)
     auto singeTileUV = glm::vec2{ tileSize / (float)atlasWidth, tileSize / (float)altasHeight };
 
-    // 0.000000, 0.562500, 0.031250, 0.593750
-
     auto col = tile_id / perRow;
     auto row = tile_id % perRow;
     auto minU = col * singeTileUV.x;
@@ -32,12 +30,12 @@ namespace tile {
     A tile is:
 
     [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 ]
-    [ TILESET ID |        TILE   ID          ]
+    [      TILE   ID      |    TILESET ID    ]
 
-    * 6  bits for tileset id -> 64   tilesets per tilemap
     * 10 bits for tile    id -> 1024 tiles    per tileset
+    * 6  bits for tileset id -> 64   tilesets per tilemap
 
-    This is entirely arbitrary, and may spontaneously change to 32 bits
+    This is entirely arbitrary, and may spontaneously change
 
 // clang-format on
 */
@@ -86,6 +84,7 @@ TileMap::TileMap()
   , tileSize_()
   , tiles_()
   , tileSets_()
+  , tileSetPaths_()
 {}
 
 TileMap::TileMap(const std::string& name, uint32_t columns, uint32_t rows, uint32_t tileSize)
@@ -94,20 +93,23 @@ TileMap::TileMap(const std::string& name, uint32_t columns, uint32_t rows, uint3
   , rows_(rows)
   , tileSize_(tileSize)
   , tiles_(columns * rows)
-  , tileSets_(TileSetId(std::numeric_limits<uint8_t>::max()))
+  , tileSets_((size_t)2 ^ 6)
+  , tileSetPaths_((size_t)2 ^ 6)
 {}
 
 void
 TileMap::add(TileSet* tileset)
 {
     this->tileSets_.push_back(tileset);
+    this->tileSetPaths_.push_back(tileset->source());
 }
 void
 TileMap::remove(TileSet* tileset)
 {
-    for (auto it = this->tileSets_.begin(); it != this->tileSets_.end(); ++it) {
-        if ((*it) == tileset) {
-            this->tileSets_.erase(it);
+    for (size_t i = 0; i < this->tileSets_.size(); ++i) {
+        if (this->tileSets_[i] == tileset) {
+            this->tileSets_.erase(this->tileSets_.begin() + i);
+            this->tileSetPaths_.erase(this->tileSetPaths_.begin() + i);
             return;
         }
     }
@@ -159,6 +161,16 @@ uint32_t
 TileMap::tileSize() const
 {
     return this->tileSize_;
+}
+std::vector<TileSet*>&
+TileMap::tilesets()
+{
+    return this->tileSets_;
+}
+std::vector<std::string>&
+TileMap::tilesetPaths()
+{
+    return this->tileSetPaths_;
 }
 
 std::vector<Tile>::iterator
@@ -213,7 +225,7 @@ TileMap::Save(TileMap& tm, const std::string& path)
         std::ofstream file(path);
         file << out;
     } catch (std::exception& ex) {
-        std::cerr << "[ERROR]: " << ex.what() << std::endl;
+        spdlog::error("Error while saving tile map to {}: {}", path, ex.what());
     }
 }
 
@@ -233,9 +245,12 @@ TileMap::Load(const std::string& path)
         std::vector<std::string> tileSetSources = json["tileSets"];
 
         std::vector<TileSet*> tileSets;
-        tileSets.reserve(tileSetSources.size());
+        std::vector<std::string> tileSetPaths;
+        tileSets.reserve(columns * rows);
+        tileSetPaths.reserve(columns * rows);
         for (const auto& source : tileSetSources) {
             tileSets.emplace_back(TileSet::Load(source));
+            tileSetPaths.emplace_back(std::move(source));
         }
 
         TileMap out;
@@ -245,6 +260,9 @@ TileMap::Load(const std::string& path)
         out.tileSize_ = tileSize;
         out.tiles_ = std::move(tiles);
         out.tileSets_ = std::move(tileSets);
+        assert(out.tileSets_.capacity() == columns * rows);
+        out.tileSetPaths_ = std::move(tileSetPaths);
+        assert(out.tileSetPaths_.capacity() == columns * rows);
         return out;
     } catch (std::exception& ex) {
         spdlog::error("Error while loading tile map {}, {}", path, ex.what());

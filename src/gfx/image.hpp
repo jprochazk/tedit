@@ -1,9 +1,9 @@
 #include "pch.h"
 #ifndef TEDIT_IMAGE_
-#    define TEDIT_IMAGE_
+#define TEDIT_IMAGE_
 
-#    include "gfx/gl.h"
-#    include <stb_image.h>
+#include "gfx/gl.h"
+#include <stb_image.h>
 
 struct ImageOptions
 {

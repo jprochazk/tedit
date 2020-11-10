@@ -10,6 +10,8 @@
 #include <stdexcept>
 #include <memory>
 #include <atomic>
+#include <mutex>
+#include <thread>
 #include <functional>
 #include <optional>
 #include <array>

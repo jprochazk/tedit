@@ -1,9 +1,9 @@
 #include "pch.h"
 
 #ifndef TEDIT_TILE_
-#    define TEDIT_TILE_
+#define TEDIT_TILE_
 
-#    include "gfx/image.hpp"
+#include "gfx/image.hpp"
 
 namespace tile {
 
@@ -91,6 +91,8 @@ public:
     uint32_t columns() const;
     uint32_t rows() const;
     uint32_t tileSize() const;
+    std::vector<TileSet*>& tilesets();
+    std::vector<std::string>& tilesetPaths();
 
     std::vector<Tile>::iterator begin();
     std::vector<Tile>::iterator end();
@@ -108,6 +110,7 @@ private:
     uint32_t tileSize_;
     std::vector<Tile> tiles_;
     std::vector<TileSet*> tileSets_;
+    std::vector<std::string> tileSetPaths_;
 }; // class TileMap
 
 } // namespace tile

@@ -59,7 +59,7 @@ Renderer::begin(Window& window)
 {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glClearColor(0.35f, 0.21f, 0.35f, 1.0f);
+    glClearColor(149.f / 255.f, 177.f / 255.f, 194.f / 255.f, 1.0f);
 
     glClear(GL_COLOR_BUFFER_BIT);
 

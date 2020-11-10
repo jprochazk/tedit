@@ -1,6 +1,6 @@
 #include "pch.h"
 #ifndef TEDIT_WINDOW_
-#    define TEDIT_WINDOW_
+#define TEDIT_WINDOW_
 
 struct GLFWwindow;
 
@@ -10,6 +10,13 @@ struct GLFWwindow;
 class Window final
 {
 public:
+    enum class Dialog
+    {
+        OpenFile,
+        SaveFile,
+        SelectFolder
+    }; // enum class Dialog
+
     Window(const std::string& title, int width, int height);
     ~Window();
 
@@ -17,8 +24,15 @@ public:
     void close();
     bool shouldClose() const;
     void swapBuffers();
-
     void setTitle(const std::string& title);
+    /**
+     * @param callback void(success, selection)
+     */
+    void openDialog(Dialog type,
+                    const std::string& title,
+                    const std::vector<std::string>& filters,
+                    std::function<void(bool, std::vector<std::string>&)> callback);
+    bool isDialogOpen() const;
 
     GLFWwindow* handle() const;
     int width() const;
@@ -47,6 +61,9 @@ private:
     std::string title_;
     int width_;
     int height_;
+
+    std::atomic_bool dialogOpen_;
+    std::mutex dialogMutex_;
 
     struct
     {

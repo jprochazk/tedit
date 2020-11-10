@@ -2,6 +2,7 @@
 #include "pch.h"
 #include "window.hpp"
 #include "gfx/gl.h"
+#include <portable-file-dialogs.h>
 
 // window instance for event listeners
 static Window* window = nullptr;
@@ -42,6 +43,7 @@ Window::Window(const std::string& title, int width, int height)
   , width_(width)
   , height_(height)
   , listeners_()
+  , dialogOpen_(false)
 {
     glfwSetErrorCallback(onError);
     assert(glfwInit());
@@ -72,6 +74,7 @@ Window::Window(const std::string& title, int width, int height)
 
 Window::~Window()
 {
+    std::unique_lock<std::mutex> lock(this->dialogMutex_);
     glfwDestroyWindow(this->handle_);
     glfwTerminate();
 }
@@ -98,6 +101,86 @@ void
 Window::swapBuffers()
 {
     glfwSwapBuffers(this->handle_);
+}
+
+void
+Window::openDialog(Dialog type,
+                   const std::string& title,
+                   const std::vector<std::string>& filters,
+                   std::function<void(bool, std::vector<std::string>&)> callback)
+{
+    if (this->dialogOpen_) {
+        spdlog::warn("Dialog already open!");
+        return;
+    }
+
+    this->dialogOpen_ = true;
+
+    std::thread([type = type,
+                 title = title,
+                 filters = filters,
+                 callback = callback,
+                 dialogOpen = &dialogOpen_,
+                 dialogMutex = &dialogMutex_] {
+        std::unique_lock<std::mutex> lock(*dialogMutex);
+        bool success = false;
+        std::vector<std::string> selection;
+        switch (type) {
+            case Dialog::OpenFile: {
+                auto fd = pfd::open_file(title, "", filters, pfd::opt::multiselect);
+                while (!fd.ready()) {
+                    if (window->shouldClose()) {
+                        fd.kill();
+                        break;
+                    }
+                }
+                auto temp_selection = fd.result();
+                if (!temp_selection.empty()) {
+                    success = true;
+                    selection = std::move(temp_selection);
+                }
+                break;
+            }
+            case Dialog::SaveFile: {
+                auto fd = pfd::save_file(title, "", filters);
+                while (!fd.ready()) {
+                    if (window->shouldClose()) {
+                        fd.kill();
+                        break;
+                    }
+                }
+                auto temp_selection = fd.result();
+                if (!temp_selection.empty()) {
+                    success = true;
+                    selection = { std::move(temp_selection) };
+                }
+                break;
+            }
+            case Dialog::SelectFolder: {
+                auto fd = pfd::select_folder(title);
+                while (!fd.ready()) {
+                    if (window->shouldClose()) {
+                        fd.kill();
+                        break;
+                    }
+                }
+                auto temp_selection = fd.result();
+                if (!temp_selection.empty()) {
+                    success = true;
+                    selection = { std::move(temp_selection) };
+                }
+                break;
+            }
+        }
+        *dialogOpen = false;
+        callback(success, selection);
+    }).detach();
+}
+
+bool
+Window::isDialogOpen() const
+{
+    return this->dialogOpen_;
 }
 
 void

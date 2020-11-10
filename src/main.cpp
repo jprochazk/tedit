@@ -6,15 +6,11 @@
 
 /*
 
-TODO: display list of tilesets as a select box
--> currentTileSet = selected
-TODO: add/remove tileset (buttons in the select box)
-
-TODO: display tileset in editor UI using DrawList api
-* pan and zoom by holding/scrolling middle mouse button
-* select tile by clicking left mouse button
--> TileId(currentTile)
--> TileSetId(currentTile, currentTileMap->tileSetId(currentTileSet))
+TODO: investigate existing tiles' tilesets switching when adding tileset
+TODO: remove tileset button logic
+    -> will require looping over all tiles, and setting them to default
+       or something along those lines
+TODO: don't select tile if mouse is past tileset boundary
 
 TODO: camera
 * 2d orthographic top-down
@@ -51,16 +47,26 @@ main(void)
     ui::Context context(&window);
 
     window.addKeyListener([&context, &window](int key, int action, int modifiers) {
-        if (action == GLFW_PRESS) {
+        // modifiers -> key -> action
+        if (modifiers == 0 /* none */) {
             if (key == GLFW_KEY_ESCAPE)
                 return window.close();
-            if (modifiers & GLFW_MOD_CONTROL == GLFW_MOD_CONTROL) {
-                if (key == GLFW_KEY_N)
+        }
+        if (modifiers == GLFW_MOD_CONTROL) {
+            if (key == GLFW_KEY_N) {
+                if (action == GLFW_PRESS) {
                     return context.dialog(ui::Dialog::NEW);
-                if (key == GLFW_KEY_S)
+                }
+            }
+            if (key == GLFW_KEY_S) {
+                if (action == GLFW_PRESS) {
                     return context.dialog(ui::Dialog::SAVE);
-                if (key == GLFW_KEY_O)
+                }
+            }
+            if (key == GLFW_KEY_O) {
+                if (action == GLFW_PRESS) {
                     return context.dialog(ui::Dialog::OPEN);
+                }
             }
         }
     });
@@ -68,28 +74,29 @@ main(void)
     auto tilemap = (*tile::TileMap::Load("SAMPLE_MAP.json"));
 
     auto& state = context.state();
+    state.tileMap = &tilemap;
 
     /* Loop until the user closes the window */
     while (!window.shouldClose()) {
         /* Poll for and process events */
         window.pollInput();
+        context.poll();
 
         renderer.begin(window);
 
         // TODO: test this properly
-        // for (size_t row = 0; row < tilemap.rows(); ++row) {
-        //    for (size_t column = 0; column < tilemap.columns(); ++column) {
-        auto tile = tilemap.get(0, 0);
-        auto tileset = tilemap.tileset(tile);
-        auto uv = tilemap.uv(tile);
-        auto model = glm::mat4(1); // glm::translate(glm::mat4(1), { 0 * 64.f, 0 * 64.f, 0.f });
-        model = glm::scale(model, { 32.f, 32.f, 1.f });
-        std::cout << glm::to_string(uv) << std::endl;
-        renderer.draw(&tileset->atlas(), uv, model);
-        //    }
-        //    continue;
-        //}
-        // renderer.draw(tileset->atlas(), uv, model);
+        glm::vec3 tileScale = { (float)tilemap.tileSize() / 2.f, (float)tilemap.tileSize() / 2.f, 1.f };
+        for (size_t row = 0; row < tilemap.rows(); ++row) {
+            for (size_t column = 0; column < tilemap.columns(); ++column) {
+                auto tile = tilemap.get(column, row);
+                auto tileset = tilemap.tileset(tile);
+                auto uv = tilemap.uv(tile);
+                auto model = glm::translate(glm::mat4(1), { column * 32.f, row * 32.f, 0.f });
+                model = glm::scale(model, tileScale);
+                renderer.draw(&tileset->atlas(), uv, model);
+            }
+            continue;
+        }
         renderer.flush();
 
         context.render();

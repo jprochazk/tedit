@@ -1,8 +1,8 @@
 #include "pch.h"
 #ifndef TEDIT_MESH_
-#    define TEDIT_MESH_
+#define TEDIT_MESH_
 
-#    include "gfx/gl.h"
+#include "gfx/gl.h"
 
 struct Attribute
 {

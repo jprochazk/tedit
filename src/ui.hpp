@@ -1,13 +1,15 @@
 #include "pch.h"
-#ifndef TEDIT_UI_
-#    define TEDIT_UI_
 
-#    include <imgui.h>
+#ifndef TEDIT_UI_
+#define TEDIT_UI_
+
+#include <imgui.h>
+#include "task.hpp"
 
 // forward declarations
 class Window;
 namespace tile {
-using Tile = uint8_t;
+using Tile = uint16_t;
 class TileSet;
 class TileMap;
 }
@@ -23,9 +25,9 @@ enum Dialog : uint8_t
 
 struct ContextState
 {
-    std::shared_ptr<tile::TileMap> tileMap;
-    tile::Tile currentTile;
-    tile::TileSet* tileSet;
+    tile::TileMap* tileMap = nullptr;
+    tile::Tile currentTile = 0;
+    int tileSetIndex = 0;
 }; // struct ContextState
 
 class Context
@@ -38,12 +40,18 @@ public:
 
     void dialog(Dialog dialog);
 
+    Window* window();
+    const Window* window() const;
     ContextState& state();
     const ContextState& state() const;
+
+    void microtask(Task&& task);
+    void poll();
 
 private:
     Window* window_;
     ContextState state_;
+    TaskQueue tasks_;
 }; // class Context
 
 }; // namespace ui

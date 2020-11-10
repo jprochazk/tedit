@@ -8,6 +8,7 @@ add_requires("CONAN::glm/0.9.9.8", { alias = "glm" })
 add_requires("CONAN::stb/20200203", { alias = "stb" })
 add_requires("CONAN::spdlog/1.8.0", { alias = "spdlog" })
 add_requires("CONAN::nlohmann_json/3.9.1", { alias = "json" })
+add_requires("CONAN::concurrentqueue/1.0.2", { alias = "cqueue" });
 
 -- create a target
 target("tedit")
@@ -30,9 +31,13 @@ target("tedit")
     add_files("vendor/imgui/backends/imgui_impl_glfw.cpp")
     add_includedirs("vendor/imgui")
 
+    -- portabile-file-dialogs
+    add_includedirs("vendor/pfd");
+
     -- and link the dependencies we brought in
     add_packages("glfw")
     add_packages("glm")
     add_packages("stb")
     add_packages("spdlog")
     add_packages("json")
+    add_packages("cqueue");

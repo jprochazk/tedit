@@ -1,10 +1,10 @@
 #include "pch.h"
 #ifndef TEDIT_RENDERER_
-#    define TEDIT_RENDERER_
+#define TEDIT_RENDERER_
 
-#    include "gfx/gl.h"
-#    include "gfx/shader.hpp"
-#    include "gfx/mesh.hpp"
+#include "gfx/gl.h"
+#include "gfx/shader.hpp"
+#include "gfx/mesh.hpp"
 
 class Window;
 class Image;

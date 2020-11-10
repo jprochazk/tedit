@@ -1,8 +1,8 @@
 #include "pch.h"
 #ifndef TEDIT_SHADER_
-#    define TEDIT_SHADER_
+#define TEDIT_SHADER_
 
-#    include "gfx/gl.h"
+#include "gfx/gl.h"
 
 struct Uniform
 {
