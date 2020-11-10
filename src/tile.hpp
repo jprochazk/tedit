@@ -1,9 +1,9 @@
 #include "pch.h"
 
 #ifndef TEDIT_TILE_
-#define TEDIT_TILE_
+#    define TEDIT_TILE_
 
-#include "gfx/image.hpp"
+#    include "gfx/image.hpp"
 
 namespace tile {
 
@@ -47,9 +47,15 @@ TileMap {
 
 */
 
-using Tile = uint8_t;
-uint8_t TileId(Tile tile);
-uint8_t TileSetId(Tile tile);
+using Tile = uint16_t;
+// Getter
+uint16_t TileId(const Tile& tile);
+// Getter
+uint16_t TileSetId(const Tile& tile);
+// Setter
+void TileId(Tile& tile, uint16_t value);
+// Setter
+void TileSetId(Tile& tile, uint16_t value);
 
 class TileSet
 {
@@ -79,6 +85,7 @@ public:
 
     glm::vec4 uv(Tile tile) const;
     const TileSet* tileset(Tile tile) const;
+    TileSet* tileset(Tile tile);
 
     std::string name() const;
     uint32_t columns() const;

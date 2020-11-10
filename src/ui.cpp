@@ -56,6 +56,9 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         ImGui::EndMenuBar();
     }
 
+    /* auto& atlas = context->state().tileSet->atlas();
+    ImGui::Image((void*)atlas.handle(), ImVec2(atlas.width(), atlas.height()), ImVec2(0, 1), ImVec2(1, 0)); */
+
     ImGui::End();
 }
 

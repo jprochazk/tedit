@@ -13,27 +13,54 @@ calculate_tile_uv(tile::Tile tile, int tileSize, int atlasWidth, int altasHeight
     // height -> (0, height) mapped to (0, 1)
     auto singeTileUV = glm::vec2{ tileSize / (float)atlasWidth, tileSize / (float)altasHeight };
 
-    auto row = tile_id / perRow;
-    auto col = tile_id % perRow;
-    auto minU = row * singeTileUV.x;
-    auto minV = col * singeTileUV.y;
-    auto maxU = minU + singeTileUV.x;
-    auto maxV = minV + singeTileUV.y;
+    // 0.000000, 0.562500, 0.031250, 0.593750
+
+    auto col = tile_id / perRow;
+    auto row = tile_id % perRow;
+    auto minU = col * singeTileUV.x;
+    auto minV = row * singeTileUV.y;
+    auto maxU = singeTileUV.x;
+    auto maxV = singeTileUV.y;
     return { minU, minV, maxU, maxV };
 }
 
 namespace tile {
 
-uint8_t
-TileId(Tile tile)
-{
-    return tile & 0b00011111;
-}
+/*
+// clang-format off
 
-uint8_t
-TileSetId(Tile tile)
+    A tile is:
+
+    [ 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 ]
+    [ TILESET ID |        TILE   ID          ]
+
+    * 6  bits for tileset id -> 64   tilesets per tilemap
+    * 10 bits for tile    id -> 1024 tiles    per tileset
+
+    This is entirely arbitrary, and may spontaneously change to 32 bits
+
+// clang-format on
+*/
+
+uint16_t
+TileId(const Tile& tile)
 {
-    return (tile & 0b11100000) >> 5;
+    return (tile & 0b1111111111111111Ui16);
+}
+uint16_t
+TileSetId(const Tile& tile)
+{
+    return (tile & 0b1111110000000000Ui16) >> 10;
+}
+void
+TileId(Tile& tile, uint16_t value)
+{
+    tile |= value;
+}
+void
+TileSetId(Tile& tile, uint16_t value)
+{
+    tile |= (value << 10);
 }
 
 TileSet::TileSet(const std::string& source)
@@ -107,6 +134,11 @@ TileMap::tileset(Tile tile) const
 {
     return this->tileSets_[TileSetId(tile)];
 }
+TileSet*
+TileMap::tileset(Tile tile)
+{
+    return this->tileSets_[TileSetId(tile)];
+}
 
 std::string
 TileMap::name() const
@@ -145,17 +177,16 @@ TileMap::size()
     return this->tiles_.size();
 }
 
+static std::unordered_map<std::string, std::unique_ptr<TileSet>> tileSetCache;
+// NOTE: thread unsafe
 TileSet*
 TileSet::Load(const std::string& path)
 {
-    // NOTE: thread unsafe
-    static std::unordered_map<std::string, TileSet> gTileSetCache;
-
-    if (auto it = gTileSetCache.find(path); it != gTileSetCache.end()) {
-        return &(it->second);
+    if (auto& it = tileSetCache.find(path); it == tileSetCache.end()) {
+        tileSetCache.emplace(path, std::move(std::make_unique<TileSet>(path)));
+        it = tileSetCache.find(path);
     }
-    auto it = gTileSetCache.emplace(path, TileSet(path));
-    return &(it.first->second);
+    return tileSetCache[path].get();
 }
 
 void
@@ -198,7 +229,7 @@ TileMap::Load(const std::string& path)
         uint32_t rows = json["rows"];
         uint32_t tileSize = json["tileSize"];
         // TODO: layers
-        std::vector<uint8_t> tiles = json["tiles"];
+        std::vector<Tile> tiles = json["tiles"];
         std::vector<std::string> tileSetSources = json["tileSets"];
 
         std::vector<TileSet*> tileSets;
@@ -214,7 +245,6 @@ TileMap::Load(const std::string& path)
         out.tileSize_ = tileSize;
         out.tiles_ = std::move(tiles);
         out.tileSets_ = std::move(tileSets);
-        std::cout << out.tileSets_.size() << std::endl;
         return out;
     } catch (std::exception& ex) {
         spdlog::error("Error while loading tile map {}, {}", path, ex.what());

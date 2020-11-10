@@ -8,6 +8,7 @@
 class Window;
 namespace tile {
 using Tile = uint8_t;
+class TileSet;
 class TileMap;
 }
 
@@ -24,6 +25,7 @@ struct ContextState
 {
     std::shared_ptr<tile::TileMap> tileMap;
     tile::Tile currentTile;
+    tile::TileSet* tileSet;
 }; // struct ContextState
 
 class Context

@@ -76,7 +76,7 @@ Renderer::begin(Window& window)
 }
 
 void
-Renderer::draw(Image* image, glm::vec4 uv, glm::mat4 model)
+Renderer::draw(const Image* image, glm::vec4 uv, glm::mat4 model)
 {
     this->commands_.push_back(Command{ image, uv, model });
 }

@@ -11,7 +11,7 @@ class Image;
 
 struct Command
 {
-    Image* image;
+    const Image* image;
     glm::vec4 uv;
     glm::mat4 model;
 }; // struct Command
@@ -32,7 +32,7 @@ public:
     /**
      * Submits a draw command.
      */
-    void draw(Image* image, glm::vec4 uv = glm::vec4(0.f, 0.f, 1.f, 1.f), glm::mat4 model = glm::mat4(1));
+    void draw(const Image* image, glm::vec4 uv = glm::vec4(0.f, 0.f, 1.f, 1.f), glm::mat4 model = glm::mat4(1));
     /**
      * Flush draw commands to the GPU.
      */

@@ -19,6 +19,11 @@ public:
     Image(const std::string& uri, GLenum type, ImageOptions options = { GL_REPEAT, GL_REPEAT, GL_NEAREST, GL_NEAREST });
     ~Image();
 
+    Image(const Image& other) = delete;
+    Image& operator=(const Image& other) = delete;
+    Image(Image&& other) = default;
+    Image& operator=(Image&& other) = default;
+
     void attach(GLenum slot) const;
     void detach() const;
 
