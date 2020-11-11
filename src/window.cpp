@@ -130,6 +130,7 @@ Window::openDialog(Dialog type,
                  dialogOpen = &dialogOpen_,
                  dialogMutex = &dialogMutex_] {
         std::unique_lock<std::mutex> lock(*dialogMutex);
+
         bool success = false;
         std::vector<std::string> selection;
         switch (type) {
@@ -138,7 +139,8 @@ Window::openDialog(Dialog type,
                 while (!fd.ready()) {
                     if (window->shouldClose()) {
                         fd.kill();
-                        break;
+                        lock.unlock();
+                        return;
                     }
                 }
                 auto temp_selection = fd.result();
@@ -153,7 +155,8 @@ Window::openDialog(Dialog type,
                 while (!fd.ready()) {
                     if (window->shouldClose()) {
                         fd.kill();
-                        break;
+                        lock.unlock();
+                        return;
                     }
                 }
                 auto temp_selection = fd.result();
@@ -168,7 +171,8 @@ Window::openDialog(Dialog type,
                 while (!fd.ready()) {
                     if (window->shouldClose()) {
                         fd.kill();
-                        break;
+                        lock.unlock();
+                        return;
                     }
                 }
                 auto temp_selection = fd.result();
@@ -188,6 +192,29 @@ bool
 Window::isDialogOpen() const
 {
     return this->dialogOpen_;
+}
+
+bool
+Window::shortcut(int modifier_val, int key)
+{
+    auto modifiers = (Window::Modifier)modifier_val;
+
+    if (modifiers & Window::Modifier::SHIFT &&
+        !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_SHIFT) || glfwGetKey(this->handle_, GLFW_KEY_RIGHT_SHIFT))) {
+        return false;
+    }
+    if (modifiers & Window::Modifier::CONTROL &&
+        !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_CONTROL) || glfwGetKey(this->handle_, GLFW_KEY_RIGHT_CONTROL))) {
+        return false;
+    }
+    if (modifiers & Window::Modifier::ALT &&
+        !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_ALT) || glfwGetKey(this->handle_, GLFW_KEY_RIGHT_ALT))) {
+        return false;
+    }
+    if (!glfwGetKey(this->handle_, key)) {
+        return false;
+    }
+    return true;
 }
 
 void

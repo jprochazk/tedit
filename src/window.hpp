@@ -34,6 +34,15 @@ public:
                     std::function<void(bool, std::vector<std::string>&)> callback);
     bool isDialogOpen() const;
 
+    enum Modifier : int
+    {
+        SHIFT = 1 << 0,
+        ALT = 1 << 1,
+        CONTROL = 1 << 2
+    };
+
+    bool shortcut(int modifiers, int key);
+
     GLFWwindow* handle() const;
     int width() const;
     int height() const;

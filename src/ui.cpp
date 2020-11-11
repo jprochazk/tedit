@@ -34,36 +34,121 @@ Deinit_ImGUI()
 }
 
 void
-Dialog_AddTileSet(Context* context, ImGuiIO& io)
+Dialog_NewTileMap(Context* context)
 {
+    ImGuiIO& io = ImGui::GetIO();
+    auto& currentDialog = context->state().currentDialog;
+    if (currentDialog != Dialog::NONE)
+        return;
+
+    auto* window = context->window();
+
+    if (ImGui::MenuItem("New", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) {
+        currentDialog = Dialog::OPEN;
+        ImGui::OpenPopup("Save Tile Map?", ImGuiPopupFlags_NoOpenOverExistingPopup);
+    }
+}
+
+void
+Dialog_SaveTileMap(Context* context)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    auto& currentDialog = context->state().currentDialog;
+    if (currentDialog != Dialog::NONE)
+        return;
+
+    auto* window = context->window();
+
+    if (ImGui::MenuItem("Save", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) {
+        currentDialog = Dialog::OPEN;
+        ImGui::OpenPopup("Save Tile Map?", ImGuiPopupFlags_NoOpenOverExistingPopup);
+    }
+}
+
+void
+Dialog_SaveAsTileMap(Context* context)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    auto& currentDialog = context->state().currentDialog;
+    if (currentDialog != Dialog::NONE)
+        return;
+
+    auto* window = context->window();
+
+    if (ImGui::MenuItem("Save as", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) {
+        currentDialog = Dialog::OPEN;
+        ImGui::OpenPopup("Save Tile Map?", ImGuiPopupFlags_NoOpenOverExistingPopup);
+    }
+}
+
+void
+Dialog_OpenTileMap(Context* context)
+{
+    ImGuiIO& io = ImGui::GetIO();
+    auto& currentDialog = context->state().currentDialog;
+    if (currentDialog != Dialog::NONE)
+        return;
+
+    auto* window = context->window();
+
+    if (ImGui::MenuItem("Open", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) {
+        currentDialog = Dialog::OPEN;
+        if (!context->state().tileMapSaved)
+            ImGui::OpenPopup("Save Tile Map?", ImGuiPopupFlags_NoOpenOverExistingPopup);
+    }
+    if (ImGui::BeginPopupModal("Save Tile Map?")) {
+        if (currentDialog == Dialog::NONE) {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::Text("test");
+        ImGui::EndPopup();
+    }
+}
+
+std::vector<std::string>
+Helper_GetUniquePaths(const std::vector<std::string>& paths, const std::vector<std::string>& existing)
+{
+    std::vector<std::string> unique;
+    for (auto& file : paths) {
+        auto relative_file_path = fs::relative(fs::absolute(file), fs::absolute(fs::current_path()));
+        bool success = true;
+        for (auto it = existing.begin(); it != existing.end(); ++it) {
+            if (relative_file_path == fs::relative(fs::absolute(*it), fs::absolute(fs::current_path()))) {
+                success = false;
+                break;
+            }
+        }
+        if (success)
+            unique.push_back(relative_file_path.generic_string());
+    }
+    return unique;
+}
+
+void
+Dialog_AddTileSet(Context* context)
+{
+    auto& currentDialog = context->state().currentDialog;
+    if (currentDialog != Dialog::NONE)
+        return;
+    currentDialog = Dialog::TILESET;
+
     auto* tilemap = context->state().tileMap;
     // we should not open the dialog if there is no open tileMap.
     assert(tilemap != nullptr);
+
     auto callback = [=](bool success, std::vector<std::string>& input) {
-        context->microtask([=] {
+        context->microtask([context, tilemap, success, input] {
             if (success) {
-                std::vector<std::string> selection = input;
-                // remove non-unique tileset paths
-                for (auto& file : selection) {
-                    file = fs::relative(fs::absolute(file), fs::absolute(fs::current_path())).generic_string();
-                }
-                for (auto it = selection.begin(); it != selection.end();) {
-                    bool success = true;
-                    for (auto& existing : tilemap->tilesetPaths()) {
-                        if (*it == existing) {
-                            selection.erase(it);
-                            success = false;
-                        } else {
-                            ++it;
-                        }
-                    }
-                }
+                // std::vector<std::string> selection = input;
+                auto selection = Helper_GetUniquePaths(input, tilemap->tilesetPaths());
                 std::cout << "Added tilesets: " << std::endl;
                 for (auto& file : selection) {
                     std::cout << file << std::endl;
                     tilemap->add(tile::TileSet::Load(file));
                 }
             }
+            auto& currentDialog = context->state().currentDialog;
+            currentDialog = Dialog::NONE;
         });
     };
     context->window()->openDialog(
@@ -81,18 +166,10 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
     auto& state = context->state();
 
     if (ImGui::BeginMenuBar()) {
-        if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("New", "CTRL+N")) {
-                context->dialog(Dialog::NEW);
-            }
-            if (ImGui::MenuItem("Save", "CTRL+S")) {
-                context->dialog(Dialog::SAVE);
-            }
-            if (ImGui::MenuItem("Open", "CTRL+O")) {
-                context->dialog(Dialog::OPEN);
-            }
-            ImGui::EndMenu();
-        }
+        ImGui::MenuItem("New", "CTRL+O");
+        ImGui::MenuItem("Save", "CTRL+O");
+        ImGui::MenuItem("Save As", "CTRL+O");
+        ImGui::MenuItem("Open", "CTRL+O");
         ImGui::EndMenuBar();
     }
 
@@ -122,9 +199,24 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
             ImGui::EndCombo();
         }
         ImGui::SameLine();
+
+        // TODO: Rework this as part of Popup rework, described in main.cpp
         if (ImGui::SmallButton("+")) {
             spdlog::info("Add tileset");
-            Dialog_AddTileSet(context, io);
+            Dialog_AddTileSet(context);
+            ImGui::OpenPopup("Adding TileSets...", ImGuiPopupFlags_NoOpenOverExistingPopup);
+        }
+        // Open an invisible modal popup, which blocks window interaction.
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(ImVec2(-100, -100), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(1, 1));
+        if (ImGui::BeginPopupModal("Adding TileSets...", NULL)) {
+            auto& currentDialog = context->state().currentDialog;
+            if (currentDialog == Dialog::NONE) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::Text("test");
+            ImGui::EndPopup();
         }
     }
     { // tileset display
@@ -291,25 +383,6 @@ Context::render()
 
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-}
-
-void
-Context::dialog(Dialog dialog)
-{
-    switch (dialog) {
-        case Dialog::NEW: {
-            spdlog::info("Dialog::NEW");
-            break;
-        }
-        case Dialog::SAVE: {
-            spdlog::info("Dialog::SAVE");
-            break;
-        }
-        case Dialog::OPEN: {
-            spdlog::info("Dialog::OPEN");
-            break;
-        }
-    }
 }
 
 Window*

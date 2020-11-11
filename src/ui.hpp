@@ -18,9 +18,12 @@ namespace ui {
 
 enum Dialog : uint8_t
 {
+    NONE = 0,
     NEW = 1 << 0,
     SAVE = 1 << 1,
-    OPEN = 1 << 2,
+    SAVEAS = 1 << 2,
+    OPEN = 1 << 3,
+    TILESET = 1 << 4
 }; // enum Dialog
 
 struct ContextState
@@ -30,6 +33,8 @@ struct ContextState
     uint16_t tileSetIndex = 0;
     bool hasMouseFocus = false;
     bool hasKeyboardFocus = false;
+    Dialog currentDialog = Dialog::NONE;
+    bool tileMapSaved = false;
 }; // struct ContextState
 
 class Context
@@ -39,8 +44,6 @@ public:
     ~Context();
 
     void render();
-
-    void dialog(Dialog dialog);
 
     Window* window();
     const Window* window() const;

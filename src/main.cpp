@@ -6,9 +6,18 @@
 
 /*
 
-TODO: camera
-* 2d orthographic top-down
-* pan and zoom by holding/scrolling middle mouse button
+TODO: REWORK POPUPS
+There should be a generic way to:
+1. Confirm if the user wants to do <SOMETHING>.
+    -> Callback for user's decision.
+2. Block user interaction, until <SOMETHING> finishes.
+    -> Completion token to test if <SOMETHING> has finished.
+    -> Completion token has to be thread-safe.
+
+ONLY ONE POPUP SHOULD BE ACTIVE AT A TIME.
+
+TODO: store tiles 2D array instead of 1D
+TODO: automatically resize tilemap as needed by growing/shrinking the arrays
 
 TODO: painting tiles with pencil-like tool (make this generic to allow for other tools?)
 -> tilemap[hovered_tile.x, hovered_tile.y] = currentTile
@@ -26,12 +35,6 @@ TODO: new/save/save as/load dialogs for tilemaps
 
 * load      -> open native file dialog
 
-TODO: resize tilemap
-* either manually add rows/columns
-    -> tedious, but simpler
-* or automatically update tilemap bounds as new tiles are added/removed
-    -> zero effort, but very complex
-
 */
 
 int
@@ -48,6 +51,7 @@ main(void)
     auto& state = context.state();
     state.tileMap = &tilemap;
 
+    // TODO: maybe refactor this a bit
     bool is_dragging = false;
     glm::dvec2 initialPosition(0, 0);
     glm::dvec2 panStart(0, 0);
@@ -87,23 +91,6 @@ main(void)
         if (modifiers == 0 /* none */) {
             if (key == GLFW_KEY_ESCAPE)
                 return window.close();
-        }
-        if (modifiers == GLFW_MOD_CONTROL) {
-            if (key == GLFW_KEY_N) {
-                if (action == GLFW_PRESS) {
-                    return context.dialog(ui::Dialog::NEW);
-                }
-            }
-            if (key == GLFW_KEY_S) {
-                if (action == GLFW_PRESS) {
-                    return context.dialog(ui::Dialog::SAVE);
-                }
-            }
-            if (key == GLFW_KEY_O) {
-                if (action == GLFW_PRESS) {
-                    return context.dialog(ui::Dialog::OPEN);
-                }
-            }
         }
     });
     window.addScrollListener([&](double xoffset, double yoffset) {
