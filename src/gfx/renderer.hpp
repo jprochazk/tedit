@@ -6,7 +6,7 @@
 #include "gfx/shader.hpp"
 #include "gfx/mesh.hpp"
 
-class Window;
+class Camera;
 class Image;
 
 struct Command
@@ -28,7 +28,7 @@ public:
      *
      * Sets necessary state and clear the framebuffer.
      */
-    void begin(Window& window);
+    void begin(Camera& window);
     /**
      * Submits a draw command.
      */

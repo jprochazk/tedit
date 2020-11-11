@@ -67,7 +67,7 @@ Dialog_AddTileSet(Context* context, ImGuiIO& io)
         });
     };
     context->window()->openDialog(
-      Window::Dialog::OpenFile, "Select Tile Set(s)", { "Image Files", "*.png", "*.jpg", "*.jpg" }, callback);
+      Window::Dialog::OpenFile, "Select Tile Set(s)", { "Image Files", "*.png", "*.jpg", "*.jpeg" }, callback);
 }
 
 void
@@ -173,36 +173,65 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
                 zoom = std::clamp(zoom - io.MouseWheel / 10.0f, 0.1f, 5.0f);
             }
 
-            // Get selected tileset image
-            auto* currentTileSetAtlas = &((*tilesets)[state.tileSetIndex]->atlas());
+            draw_list->PushClipRect(display_p0, display_p1, true);
 
-            if (is_hovered && ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+            // Get selected tileset image
+            auto* currentTileSet = (*tilesets)[state.tileSetIndex];
+            auto* currentTileSetAtlas = &currentTileSet->atlas();
+
+            // draw tileset
+            auto tileset_p0 = ImVec2(origin.x, origin.y - (currentTileSetAtlas->height() / zoom) + display_sz.y);
+            auto tileset_p1 = ImVec2(origin.x + (currentTileSetAtlas->width() / zoom), origin.y + display_sz.y);
+            // we flip image data on load (src/gfx/image.cpp, Image constructor),
+            // but ImGUI also flips them, so we need to flip again to draw correctly.
+            draw_list->AddImage(
+              (void*)(currentTileSetAtlas->handle()), tileset_p0, tileset_p1, ImVec2(0, 1), ImVec2(1, 0));
+
+            auto zoomed_tileSize = tilemap->tileSize() / zoom;
+            if (is_hovered) {
                 // calculate mouse pos on atlas
                 auto mx = (mouse_pos_in_display.x) * zoom;
                 auto my = -(mouse_pos_in_display.y - display_sz.y) * zoom;
 
+                // check if mouse is intersecting atlas
                 auto atlasW = (float)currentTileSetAtlas->width();
                 auto atlasH = (float)currentTileSetAtlas->height();
                 if (mx > 0 && mx < atlasW && my > 0 && my < atlasH) {
-                    auto tilesPerRow = atlasW / (float)tilemap->tileSize();
-                    auto tileSetId = state.tileSetIndex;
-                    // calculate tile ID
-                    auto tile_x = std::floorf(mx / tilemap->tileSize());
-                    auto tile_y = std::floorf(my / tilemap->tileSize());
-                    auto tile_id = tile_y + tile_x * tilesPerRow;
-                    state.currentTile = 0;
-                    tile::TileSetId(state.currentTile, state.tileSetIndex);
-                    tile::TileId(state.currentTile, tile_id);
+                    auto tile_column = std::floorf(mx / tilemap->tileSize());
+                    auto tile_row = std::floorf(my / tilemap->tileSize());
+
+                    // draw tile highlight
+                    auto hover_p0 = ImVec2(origin.x + (zoomed_tileSize * tile_column),
+                                           origin.y + display_sz.y - (zoomed_tileSize * tile_row));
+                    auto hover_p1 = ImVec2(hover_p0.x + zoomed_tileSize, hover_p0.y - zoomed_tileSize);
+                    draw_list->AddRectFilled(hover_p0, hover_p1, IM_COL32(120, 120, 120, 100));
+
+                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                        // calculate tile ID
+                        auto tilesPerRow = atlasW / (float)tilemap->tileSize();
+                        auto tileSetId = state.tileSetIndex;
+                        // X and Y are reversed because of UV flip when drawing tileset atlas (see above)
+                        auto tile_id = tile_row + tile_column * tilesPerRow;
+
+                        // set current tile
+                        state.currentTile = 0;
+                        tile::TileSetId(state.currentTile, state.tileSetIndex);
+                        tile::TileId(state.currentTile, tile_id);
+                    }
                 }
             }
 
-            draw_list->PushClipRect(display_p0, display_p1, true);
-            draw_list->AddImage((void*)(currentTileSetAtlas->handle()),
-                                ImVec2(origin.x, origin.y - (currentTileSetAtlas->height() / zoom) + display_sz.y),
-                                ImVec2(origin.x + (currentTileSetAtlas->width() / zoom), origin.y + display_sz.y),
-                                // flip UVs on Y axis
-                                ImVec2(0, 1),
-                                ImVec2(1, 0));
+            // draw active tile
+            if (state.tileSetIndex == tile::TileSetId(state.currentTile)) {
+                auto currentTileId = tile::TileId(state.currentTile);
+                auto uvPerRow = (currentTileSetAtlas->width() / tilemap->tileSize());
+                auto tile_x = zoomed_tileSize * (currentTileId / uvPerRow);
+                auto tile_y = zoomed_tileSize * (currentTileId % uvPerRow);
+                auto active_p0 = ImVec2(origin.x + tile_x, origin.y + display_sz.y - tile_y);
+                auto active_p1 = ImVec2(active_p0.x + zoomed_tileSize, active_p0.y - zoomed_tileSize);
+                draw_list->AddRect(active_p0, active_p1, IM_COL32(84, 229, 255, 255), 0.0f, 15, 3.0f);
+            }
+
             draw_list->PopClipRect();
         }
     }

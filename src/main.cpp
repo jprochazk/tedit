@@ -38,26 +38,48 @@ int
 main(void)
 {
     Window window("Test Window", 1600, 900);
+    Camera camera(&window);
     Renderer renderer;
 
     ui::Context context(&window);
 
-    auto tilemap = (*tile::TileMap::Load("SAMPLE_MAP.json"));
+    auto tilemap = std::move(*tile::TileMap::Load("SAMPLE_MAP.json"));
 
     auto& state = context.state();
     state.tileMap = &tilemap;
 
-    window.addMouseMoveListener([&context, &window](double mouseX, double mouseY) {
+    bool is_dragging = false;
+    glm::dvec2 initialPosition(0, 0);
+    glm::dvec2 panStart(0, 0);
+
+    window.addMouseMoveListener([&](double mouseX, double mouseY) {
         if (context.state().hasMouseFocus) {
             return;
         }
+
+        if (is_dragging) {
+            glm::vec2 delta = initialPosition + (panStart - glm::dvec2(mouseX, -mouseY)) / glm::dvec2(camera.zoom());
+            camera.move(delta);
+        }
     });
-    window.addMouseButtonListener([&context, &window](int button, int action, int modifiers) {
+    window.addMouseButtonListener([&](int button, int action, int modifiers) {
         if (context.state().hasMouseFocus) {
             return;
         }
+        if (modifiers == 0) {
+            if (button == GLFW_MOUSE_BUTTON_MIDDLE) {
+                if (action == GLFW_PRESS) {
+                    initialPosition = camera.pos();
+                    glfwGetCursorPos(window.handle(), &panStart.x, &panStart.y);
+                    panStart.y = -panStart.y;
+                    is_dragging = true;
+                } else if (action == GLFW_RELEASE) {
+                    is_dragging = false;
+                }
+            }
+        }
     });
-    window.addKeyListener([&context, &window](int key, int action, int modifiers) {
+    window.addKeyListener([&](int key, int action, int modifiers) {
         if (context.state().hasKeyboardFocus) {
             return;
         }
@@ -84,6 +106,12 @@ main(void)
             }
         }
     });
+    window.addScrollListener([&](double xoffset, double yoffset) {
+        if (context.state().hasMouseFocus) {
+            return;
+        }
+        camera.zoom(yoffset);
+    });
 
     /* Loop until the user closes the window */
     while (!window.shouldClose()) {
@@ -91,7 +119,7 @@ main(void)
         window.pollInput();
         context.poll();
 
-        renderer.begin(window);
+        renderer.begin(camera);
 
         // TODO: test this properly
         glm::vec3 tileScale = { (float)tilemap.tileSize() / 2.f, (float)tilemap.tileSize() / 2.f, 1.f };

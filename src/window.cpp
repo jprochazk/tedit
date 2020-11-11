@@ -32,6 +32,12 @@ global_HandleGLFWResize(GLFWwindow*, int width, int height)
 }
 
 static void
+global_HandleGLFWScroll(GLFWwindow*, double xoffset, double yoffset)
+{
+    window->onScroll(xoffset, yoffset);
+}
+
+static void
 onError(int error, const char* description)
 {
     spdlog::error("GLFW Error {}: {}", error, description);
@@ -61,6 +67,7 @@ Window::Window(const std::string& title, int width, int height)
     glfwSetCursorPosCallback(this->handle_, ::global_HandleGLFWMouseMove);
     glfwSetMouseButtonCallback(this->handle_, ::global_HandleGLFWMouseButton);
     glfwSetKeyCallback(this->handle_, ::global_HandleGLFWKey);
+    glfwSetScrollCallback(this->handle_, ::global_HandleGLFWScroll);
     glfwSetFramebufferSizeCallback(this->handle_, ::global_HandleGLFWResize);
 
     glfwMakeContextCurrent(this->handle_);
@@ -227,6 +234,12 @@ Window::addKeyListener(std::function<void(int, int, int)> listener)
 }
 
 void
+Window::addScrollListener(std::function<void(double, double)> listener)
+{
+    this->listeners_.scroll.emplace_back(listener);
+}
+
+void
 Window::onMouseMove(double xpos, double ypos)
 {
     for (const auto& listener : this->listeners_.mouseMove) {
@@ -247,6 +260,14 @@ Window::onKey(int key, int /* scancode */, int action, int modifiers)
 {
     for (const auto& listener : this->listeners_.key) {
         listener(key, action, modifiers);
+    }
+}
+
+void
+Window::onScroll(double xoffset, double yoffset)
+{
+    for (const auto& listener : this->listeners_.scroll) {
+        listener(xoffset, yoffset);
     }
 }
 

@@ -50,10 +50,15 @@ public:
      * @param listener arguments are (key, action, modifiers)
      */
     void addKeyListener(std::function<void(int, int, int)> listener);
+    /**
+     * @param listener arguments are (xoffset, yoffset)
+     */
+    void addScrollListener(std::function<void(double, double)> listener);
 
     void onMouseMove(double xpos, double ypos);
     void onMouseButton(int button, int action, int modifiers);
     void onKey(int key, int scancode, int action, int modifiers);
+    void onScroll(double xoffset, double yoffset);
     void onResize(int width, int height);
 
 private:
@@ -70,6 +75,7 @@ private:
         std::vector<std::function<void(double, double)>> mouseMove;
         std::vector<std::function<void(int, int, int)>> mouseButton;
         std::vector<std::function<void(int, int, int)>> key;
+        std::vector<std::function<void(double, double)>> scroll;
     } listeners_;
 }; // class Window
 

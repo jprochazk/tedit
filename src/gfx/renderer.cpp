@@ -3,6 +3,7 @@
 #include "renderer.hpp"
 #include "window.hpp"
 #include "gfx/image.hpp"
+#include "gfx/camera.hpp"
 
 // clang-format off
 const char* SHADER_VSRC = 
@@ -55,7 +56,7 @@ Renderer::Renderer()
 }
 
 void
-Renderer::begin(Window& window)
+Renderer::begin(Camera& camera)
 {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -63,11 +64,8 @@ Renderer::begin(Window& window)
 
     glClear(GL_COLOR_BUFFER_BIT);
 
-    // TODO: get these from camera
-    float hw = (float)window.width() / 2.f;
-    float hh = (float)window.height() / 2.f;
-    glm::mat4 projection = glm::ortho(hw, -hw, -hh, hh, -1.f, 1.f);
-    glm::mat4 view = glm::lookAt(glm::vec3(0.f, 0.f, 0.f), glm::vec3(0.f, 0.f, 1.f), glm::vec3(0.f, 1.f, 0.f));
+    auto& projection = camera.projection();
+    auto& view = camera.view();
 
     this->shader_.attach();
     glUniformMatrix4fv(this->uProj_.location, 1, false, glm::value_ptr(projection));

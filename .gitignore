@@ -10,3 +10,6 @@ build/
 
 # project files
 vs2019/
+
+# imgui
+imgui.ini

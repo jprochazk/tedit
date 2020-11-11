@@ -43,7 +43,7 @@ namespace tile {
 uint16_t
 TileId(const Tile& tile)
 {
-    return (tile & 0b1111111111111111Ui16);
+    return (tile & 0b0000001111111111Ui16);
 }
 uint16_t
 TileSetId(const Tile& tile)

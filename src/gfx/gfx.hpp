@@ -9,6 +9,7 @@
 #include "image.hpp"
 #include "mesh.hpp"
 #include "shader.hpp"
+#include "camera.hpp"
 #include "renderer.hpp"
 // clang-format on
 
