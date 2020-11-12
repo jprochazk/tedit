@@ -28,7 +28,6 @@ It uses:
 * TypeScript library to efficiently load the maps in HTML5 canvas based games
 
 ## Build & Run
-
 Uses [`xmake`](https://xmake.io/). Please [install](https://xmake.io/#/getting_started?id=installation) it first.
 
 `ImGUI` is brought in as a submodule, so please clone the repository recursively.
@@ -49,6 +48,8 @@ You can also [generate project files](https://xmake.io/#/plugin/builtin_plugins?
 $ xmake project -k makefile
 $ make -j8
 ```
+
+**NOTE:** Currently, only Windows is supported, due to the complexity of GUI environments on Linux and the fact that I don't have access to a Mac. In theory, this application should work on all of these platforms, but I doubt it will build without some platform-specific changes. If you try to build this and fail, please let me know by creating an [issue](https://github.com/jprochazk/tedit/issues).
 
 ### Why XMake?
 
