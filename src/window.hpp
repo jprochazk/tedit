@@ -29,10 +29,10 @@ public:
      * @param callback void(success, selection)
      */
     void openDialog(Dialog type,
-                    const std::string& title,
-                    const std::vector<std::string>& filters,
-                    bool multi,
-                    std::function<void(bool, std::vector<std::string>&)> callback);
+        const std::string& title,
+        const std::vector<std::string>& filters,
+        bool multi,
+        std::function<void(bool, std::vector<std::string>&)> callback);
     bool isDialogOpen() const;
 
     enum Modifier : int
