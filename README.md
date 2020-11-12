@@ -13,9 +13,15 @@ It uses:
 
 ## Features
 
+* Tile map display
+* Tile map save/load to JSON
+* Selecting tiles from a tile atlas
+
+![Showcase Image](SHOWCASE.png)
+
 #### Planned:
-* Tile sets from images
-* Tile maps
+* Tile map editing with MSPaint pencil-like tool
+* Automatic tileset resizing
 * Custom properties (key/value pairs) attached to tiles
 * Expand a 2D scene with 3D models (such as in the game [Realm of the Mad God](https://www.realmofthemadgod.com/))
 * Import from and export to (optionally) optimized JSON

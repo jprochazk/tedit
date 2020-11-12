@@ -99,6 +99,7 @@ main(void)
         }
         camera.zoom(yoffset);
     });
+    window.addResizeListener([&](int width, int height) { camera.resize(width, height); });
 
     /* Loop until the user closes the window */
     while (!window.shouldClose()) {

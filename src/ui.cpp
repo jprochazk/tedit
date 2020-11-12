@@ -33,78 +33,6 @@ Deinit_ImGUI()
     ImGui::DestroyContext();
 }
 
-void
-Dialog_NewTileMap(Context* context)
-{
-    ImGuiIO& io = ImGui::GetIO();
-    auto& currentDialog = context->state().currentDialog;
-    if (currentDialog != Dialog::NONE)
-        return;
-
-    auto* window = context->window();
-
-    if (ImGui::MenuItem("New", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) {
-        currentDialog = Dialog::OPEN;
-        ImGui::OpenPopup("Save Tile Map?", ImGuiPopupFlags_NoOpenOverExistingPopup);
-    }
-}
-
-void
-Dialog_SaveTileMap(Context* context)
-{
-    ImGuiIO& io = ImGui::GetIO();
-    auto& currentDialog = context->state().currentDialog;
-    if (currentDialog != Dialog::NONE)
-        return;
-
-    auto* window = context->window();
-
-    if (ImGui::MenuItem("Save", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) {
-        currentDialog = Dialog::OPEN;
-        ImGui::OpenPopup("Save Tile Map?", ImGuiPopupFlags_NoOpenOverExistingPopup);
-    }
-}
-
-void
-Dialog_SaveAsTileMap(Context* context)
-{
-    ImGuiIO& io = ImGui::GetIO();
-    auto& currentDialog = context->state().currentDialog;
-    if (currentDialog != Dialog::NONE)
-        return;
-
-    auto* window = context->window();
-
-    if (ImGui::MenuItem("Save as", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) {
-        currentDialog = Dialog::OPEN;
-        ImGui::OpenPopup("Save Tile Map?", ImGuiPopupFlags_NoOpenOverExistingPopup);
-    }
-}
-
-void
-Dialog_OpenTileMap(Context* context)
-{
-    ImGuiIO& io = ImGui::GetIO();
-    auto& currentDialog = context->state().currentDialog;
-    if (currentDialog != Dialog::NONE)
-        return;
-
-    auto* window = context->window();
-
-    if (ImGui::MenuItem("Open", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) {
-        currentDialog = Dialog::OPEN;
-        if (!context->state().tileMapSaved)
-            ImGui::OpenPopup("Save Tile Map?", ImGuiPopupFlags_NoOpenOverExistingPopup);
-    }
-    if (ImGui::BeginPopupModal("Save Tile Map?")) {
-        if (currentDialog == Dialog::NONE) {
-            ImGui::CloseCurrentPopup();
-        }
-        ImGui::Text("test");
-        ImGui::EndPopup();
-    }
-}
-
 std::vector<std::string>
 Helper_GetUniquePaths(const std::vector<std::string>& paths, const std::vector<std::string>& existing)
 {
@@ -127,10 +55,10 @@ Helper_GetUniquePaths(const std::vector<std::string>& paths, const std::vector<s
 void
 Dialog_AddTileSet(Context* context)
 {
-    auto& currentDialog = context->state().currentDialog;
+    /* auto& currentDialog = context->state().currentDialog;
     if (currentDialog != Dialog::NONE)
         return;
-    currentDialog = Dialog::TILESET;
+    currentDialog = Dialog::TILESET; */
 
     auto* tilemap = context->state().tileMap;
     // we should not open the dialog if there is no open tileMap.
@@ -148,7 +76,6 @@ Dialog_AddTileSet(Context* context)
                 }
             }
             auto& currentDialog = context->state().currentDialog;
-            currentDialog = Dialog::NONE;
         });
     };
     context->window()->openDialog(
@@ -158,8 +85,10 @@ Dialog_AddTileSet(Context* context)
 void
 Render_TileSetWindow(Context* context, ImGuiIO& io)
 {
-    ImGui::SetNextWindowSize(ImVec2(380, 640));
-    bool wnd_open = ImGui::Begin("Tile Set", NULL, ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize);
+    ImGui::SetNextWindowSize(ImVec2(380, 540));
+    auto flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
+                 ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
+    bool wnd_open = ImGui::Begin("Tile Set", NULL, flags);
     if (!wnd_open)
         return ImGui::End();
 
@@ -204,10 +133,10 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         if (ImGui::SmallButton("+")) {
             spdlog::info("Add tileset");
             Dialog_AddTileSet(context);
-            ImGui::OpenPopup("Adding TileSets...", ImGuiPopupFlags_NoOpenOverExistingPopup);
+            /* ImGui::OpenPopup("Adding TileSets...", ImGuiPopupFlags_NoOpenOverExistingPopup); */
         }
         // Open an invisible modal popup, which blocks window interaction.
-        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        /* ImVec2 center = ImGui::GetMainViewport()->GetCenter();
         ImGui::SetNextWindowPos(ImVec2(-100, -100), ImGuiCond_Always);
         ImGui::SetNextWindowSize(ImVec2(1, 1));
         if (ImGui::BeginPopupModal("Adding TileSets...", NULL)) {
@@ -217,7 +146,7 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
             }
             ImGui::Text("test");
             ImGui::EndPopup();
-        }
+        } */
     }
     { // tileset display
         std::vector<tile::TileSet*>* tilesets = nullptr;
@@ -350,6 +279,20 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         }
     }
 
+    auto& currentDialog = context->state().currentDialog;
+    if (!ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup) && !currentDialog.open && !currentDialog.done) {
+        ImGui::OpenPopup("Are you sure?");
+        currentDialog.open = true;
+    }
+    if (ImGui::BeginPopupModal("Are you sure?")) {
+        ImGui::Text(currentDialog.text);
+        ImGui::Separator();
+        ImGui::Button("Yes");
+        ImGui::SameLine();
+        ImGui::Button("No");
+        ImGui::EndPopup();
+    }
+
     ImGui::End();
 }
 
@@ -406,6 +349,22 @@ const ContextState&
 Context::state() const
 {
     return this->state_;
+}
+
+void
+Context::confirm(const char* text, std::function<void(bool)> callback)
+{
+    auto& currentDialog = this->state_.currentDialog;
+    assert(!currentDialog.open && currentDialog.done);
+    currentDialog = { text, callback, false, false };
+}
+
+void
+Context::interaction(bool value)
+{
+    // Have to ensure that we're only calling this if there isn't already a dialog.
+    const auto& currentDialog = this->state_.currentDialog;
+    assert(!currentDialog.open && currentDialog.done);
 }
 
 void

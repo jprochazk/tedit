@@ -16,15 +16,13 @@ class TileMap;
 
 namespace ui {
 
-enum Dialog : uint8_t
+struct ConfirmDialog
 {
-    NONE = 0,
-    NEW = 1 << 0,
-    SAVE = 1 << 1,
-    SAVEAS = 1 << 2,
-    OPEN = 1 << 3,
-    TILESET = 1 << 4
-}; // enum Dialog
+    const char* text = "";
+    std::function<void(bool)> callback = nullptr;
+    bool open = false;
+    bool done = true;
+}; // struct ConfirmDialog
 
 struct ContextState
 {
@@ -33,7 +31,7 @@ struct ContextState
     uint16_t tileSetIndex = 0;
     bool hasMouseFocus = false;
     bool hasKeyboardFocus = false;
-    Dialog currentDialog = Dialog::NONE;
+    ConfirmDialog currentDialog = {};
     bool tileMapSaved = false;
 }; // struct ContextState
 
@@ -49,6 +47,9 @@ public:
     const Window* window() const;
     ContextState& state();
     const ContextState& state() const;
+
+    void confirm(const char* text, std::function<void(bool)> callback);
+    void interaction(bool value);
 
     void microtask(Task&& task);
     void poll();

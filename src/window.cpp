@@ -267,6 +267,12 @@ Window::addScrollListener(std::function<void(double, double)> listener)
 }
 
 void
+Window::addResizeListener(std::function<void(int, int)> listener)
+{
+    this->listeners_.resize.emplace_back(listener);
+}
+
+void
 Window::onMouseMove(double xpos, double ypos)
 {
     for (const auto& listener : this->listeners_.mouseMove) {
@@ -304,4 +310,8 @@ Window::onResize(int width, int height)
     this->width_ = width;
     this->height_ = height;
     glViewport(0, 0, width, height);
+
+    for (const auto& listener : this->listeners_.resize) {
+        listener(width, height);
+    }
 }
