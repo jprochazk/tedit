@@ -114,6 +114,7 @@ void
 Window::openDialog(Dialog type,
                    const std::string& title,
                    const std::vector<std::string>& filters,
+                   bool multi,
                    std::function<void(bool, std::vector<std::string>&)> callback)
 {
     if (this->dialogOpen_) {
@@ -126,6 +127,7 @@ Window::openDialog(Dialog type,
     std::thread([type = type,
                  title = title,
                  filters = filters,
+                 multi = multi,
                  callback = callback,
                  dialogOpen = &dialogOpen_,
                  dialogMutex = &dialogMutex_] {
@@ -135,7 +137,7 @@ Window::openDialog(Dialog type,
         std::vector<std::string> selection;
         switch (type) {
             case Dialog::OpenFile: {
-                auto fd = pfd::open_file(title, "", filters, pfd::opt::multiselect);
+                auto fd = pfd::open_file(title, "", filters, multi ? pfd::opt::multiselect : pfd::opt::none);
                 while (!fd.ready()) {
                     if (window->shouldClose()) {
                         fd.kill();
@@ -199,19 +201,19 @@ Window::shortcut(int modifier_val, int key)
 {
     auto modifiers = (Window::Modifier)modifier_val;
 
-    if (modifiers & Window::Modifier::SHIFT &&
-        !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_SHIFT) || glfwGetKey(this->handle_, GLFW_KEY_RIGHT_SHIFT))) {
+    if ((modifiers & Window::Modifier::CONTROL) && !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS ||
+                                                     glfwGetKey(this->handle_, GLFW_KEY_RIGHT_CONTROL) == GLFW_PRESS)) {
         return false;
     }
-    if (modifiers & Window::Modifier::CONTROL &&
-        !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_CONTROL) || glfwGetKey(this->handle_, GLFW_KEY_RIGHT_CONTROL))) {
+    if ((modifiers & Window::Modifier::SHIFT) && !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_SHIFT) == GLFW_PRESS ||
+                                                   glfwGetKey(this->handle_, GLFW_KEY_RIGHT_SHIFT) == GLFW_PRESS)) {
         return false;
     }
-    if (modifiers & Window::Modifier::ALT &&
-        !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_ALT) || glfwGetKey(this->handle_, GLFW_KEY_RIGHT_ALT))) {
+    if ((modifiers & Window::Modifier::ALT) && !(glfwGetKey(this->handle_, GLFW_KEY_LEFT_ALT) == GLFW_PRESS ||
+                                                 glfwGetKey(this->handle_, GLFW_KEY_RIGHT_ALT) == GLFW_PRESS)) {
         return false;
     }
-    if (!glfwGetKey(this->handle_, key)) {
+    if (!(glfwGetKey(this->handle_, key) == GLFW_PRESS)) {
         return false;
     }
     return true;

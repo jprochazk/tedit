@@ -20,19 +20,20 @@ struct ConfirmDialog
 {
     const char* text = "";
     std::function<void(bool)> callback = nullptr;
-    bool open = false;
     bool done = true;
 }; // struct ConfirmDialog
 
 struct ContextState
 {
+    std::string tileMapPath;
+    bool tileMapSaved = false;
     tile::TileMap* tileMap = nullptr;
     tile::Tile currentTile = 0;
     uint16_t tileSetIndex = 0;
     bool hasMouseFocus = false;
     bool hasKeyboardFocus = false;
     ConfirmDialog currentDialog = {};
-    bool tileMapSaved = false;
+    bool interactionBlocked = false;
 }; // struct ContextState
 
 class Context
@@ -49,7 +50,6 @@ public:
     const ContextState& state() const;
 
     void confirm(const char* text, std::function<void(bool)> callback);
-    void interaction(bool value);
 
     void microtask(Task&& task);
     void poll();

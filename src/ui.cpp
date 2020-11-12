@@ -53,39 +53,50 @@ Helper_GetUniquePaths(const std::vector<std::string>& paths, const std::vector<s
 }
 
 void
+Dialog_NewTileMap(Context* context)
+{
+    auto& state = context->state();
+    auto* tilemap = state.tileMap;
+}
+
+void
 Dialog_AddTileSet(Context* context)
 {
-    /* auto& currentDialog = context->state().currentDialog;
-    if (currentDialog != Dialog::NONE)
-        return;
-    currentDialog = Dialog::TILESET; */
-
-    auto* tilemap = context->state().tileMap;
+    auto& state = context->state();
+    auto* tilemap = state.tileMap;
     // we should not open the dialog if there is no open tileMap.
     assert(tilemap != nullptr);
 
-    auto callback = [=](bool success, std::vector<std::string>& input) {
-        context->microtask([context, tilemap, success, input] {
-            if (success) {
-                // std::vector<std::string> selection = input;
-                auto selection = Helper_GetUniquePaths(input, tilemap->tilesetPaths());
-                std::cout << "Added tilesets: " << std::endl;
-                for (auto& file : selection) {
-                    std::cout << file << std::endl;
-                    tilemap->add(tile::TileSet::Load(file));
+    state.interactionBlocked = true;
+    context->window()->openDialog(Window::Dialog::OpenFile,
+        "Select Tile Set(s)",
+        { "Image Files", "*.png", "*.jpg", "*.jpeg" },
+        false,
+        [=](bool success, std::vector<std::string>& input) {
+            context->microtask([context, tilemap, success, input] {
+                if (success) {
+                    auto selection = Helper_GetUniquePaths(input, tilemap->tilesetPaths());
+                    std::cout << "Added tilesets: " << std::endl;
+                    for (auto& file : selection) {
+                        if (!fs::exists(file))
+                            continue;
+                        auto* loaded = tile::TileSet::Load(file);
+                        if (loaded) {
+                            std::cout << file << std::endl;
+                            tilemap->add(loaded);
+                        } else // TODO: notify user that loading failed
+                            continue;
+                    }
                 }
-            }
-            auto& currentDialog = context->state().currentDialog;
+                context->state().interactionBlocked = false;
+            });
         });
-    };
-    context->window()->openDialog(
-      Window::Dialog::OpenFile, "Select Tile Set(s)", { "Image Files", "*.png", "*.jpg", "*.jpeg" }, callback);
 }
 
 void
 Render_TileSetWindow(Context* context, ImGuiIO& io)
 {
-    ImGui::SetNextWindowSize(ImVec2(380, 540));
+    ImGui::SetNextWindowSize(ImVec2(320, 380));
     auto flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
                  ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
     bool wnd_open = ImGui::Begin("Tile Set", NULL, flags);
@@ -93,12 +104,52 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         return ImGui::End();
 
     auto& state = context->state();
+    auto* window = context->window();
 
     if (ImGui::BeginMenuBar()) {
-        ImGui::MenuItem("New", "CTRL+O");
-        ImGui::MenuItem("Save", "CTRL+O");
-        ImGui::MenuItem("Save As", "CTRL+O");
-        ImGui::MenuItem("Open", "CTRL+O");
+        if ((ImGui::MenuItem("New", "CTRL+N") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_N)) &&
+            !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            if (!state.tileMapSaved) {
+                context->confirm("Would you like to save first?", [&](bool choice) {
+                    if (choice) {
+                        spdlog::info("Save Tile Map");
+                    } else {
+                        spdlog::info("Discard Tile Map");
+                    }
+                    spdlog::info("New Tile Map");
+                });
+            } else {
+                spdlog::info("New Tile Map");
+            }
+        }
+        if (ImGui::MenuItem("Save", "CTRL+S") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_S)) {
+            if (!state.tileMapSaved) {
+                if (state.tileMapPath.empty() && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+                    // where to save?
+                    spdlog::info("Save Tile Map As");
+                } else {
+                    spdlog::info("Save Tile Map");
+                }
+            }
+        }
+        if ((ImGui::MenuItem("Save As")) && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            spdlog::info("Save Tile Map As");
+        }
+        if ((ImGui::MenuItem("Open", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) &&
+            !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            if (!state.tileMapSaved) {
+                context->confirm("Would you like to save first?", [&](bool choice) {
+                    if (choice) {
+                        spdlog::info("Save Tile Map");
+                    } else {
+                        spdlog::info("Discard Tile Map");
+                    }
+                    spdlog::info("Open Tile Map");
+                });
+            } else {
+                spdlog::info("Open Tile Map");
+            }
+        }
         ImGui::EndMenuBar();
     }
 
@@ -129,24 +180,10 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         }
         ImGui::SameLine();
 
-        // TODO: Rework this as part of Popup rework, described in main.cpp
-        if (ImGui::SmallButton("+")) {
+        if (ImGui::SmallButton("+") && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
             spdlog::info("Add tileset");
             Dialog_AddTileSet(context);
-            /* ImGui::OpenPopup("Adding TileSets...", ImGuiPopupFlags_NoOpenOverExistingPopup); */
         }
-        // Open an invisible modal popup, which blocks window interaction.
-        /* ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(ImVec2(-100, -100), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(1, 1));
-        if (ImGui::BeginPopupModal("Adding TileSets...", NULL)) {
-            auto& currentDialog = context->state().currentDialog;
-            if (currentDialog == Dialog::NONE) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::Text("test");
-            ImGui::EndPopup();
-        } */
     }
     { // tileset display
         std::vector<tile::TileSet*>* tilesets = nullptr;
@@ -155,6 +192,7 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         }
 
         if (tilesets != nullptr && state.tileSetIndex < tilesets->size()) {
+            // TODO: always zoom into current middle of the view instead of origin
             static ImVec2 offset(0.0f, 0.0f);
             static float zoom = 1.0f;
 
@@ -175,8 +213,8 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
             draw_list->AddRect(display_p0, display_p1, IM_COL32(255, 255, 255, 255));
 
             // This will catch our interactions
-            auto display_rect_flags =
-              ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight | ImGuiButtonFlags_MouseButtonMiddle;
+            auto display_rect_flags = ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight |
+                                      ImGuiButtonFlags_MouseButtonMiddle;
             ImGui::InvisibleButton("display", display_sz, display_rect_flags);
             const bool is_hovered = ImGui::IsItemHovered();                        // Hovered
             const bool is_active = ImGui::IsItemActive();                          // Held
@@ -206,7 +244,7 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
             // we flip image data on load (src/gfx/image.cpp, Image constructor),
             // but ImGUI also flips them, so we need to flip again to draw correctly.
             draw_list->AddImage(
-              (void*)(currentTileSetAtlas->handle()), tileset_p0, tileset_p1, ImVec2(0, 1), ImVec2(1, 0));
+                (void*)(currentTileSetAtlas->handle()), tileset_p0, tileset_p1, ImVec2(0, 1), ImVec2(1, 0));
 
             auto zoomed_tileSize = tilemap->tileSize() / zoom;
             if (is_hovered) {
@@ -223,7 +261,7 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
 
                     // draw tile highlight
                     auto hover_p0 = ImVec2(origin.x + (zoomed_tileSize * tile_column),
-                                           origin.y + display_sz.y - (zoomed_tileSize * tile_row));
+                        origin.y + display_sz.y - (zoomed_tileSize * tile_row));
                     auto hover_p1 = ImVec2(hover_p0.x + zoomed_tileSize, hover_p0.y - zoomed_tileSize);
                     draw_list->AddRectFilled(hover_p0, hover_p1, IM_COL32(120, 120, 120, 100));
 
@@ -256,41 +294,46 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
             draw_list->PopClipRect();
         }
     }
-    ImGui::Spacing();
-    { // current tile display
-        const Image* currentTileSetAtlas = nullptr;
-        if (tilemap != nullptr) {
-            auto tileSetIndex = tile::TileSetId(state.currentTile);
-            auto* tilesets = &tilemap->tilesets();
-            if (tileSetIndex < tilesets->size()) {
-                currentTileSetAtlas = &((*tilesets)[tileSetIndex]->atlas());
+
+    /* Render popups */
+    {
+        auto& currentDialog = state.currentDialog;
+        if (!currentDialog.done && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            ImGui::OpenPopup("confirm_dialog");
+        }
+        auto popup_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize;
+        if (ImGui::BeginPopupModal("confirm_dialog", NULL, popup_flags)) {
+            ImGui::Text(currentDialog.text);
+            ImGui::Separator();
+            if (ImGui::Button("Yes")) {
+                if (currentDialog.callback)
+                    currentDialog.callback(true);
+                currentDialog.done = true;
+                ImGui::CloseCurrentPopup();
             }
+            ImGui::SameLine();
+            if (ImGui::Button("No")) {
+                if (currentDialog.callback)
+                    currentDialog.callback(false);
+                currentDialog.done = true;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
         }
 
-        ImGui::Text("Current tile:");
-        if (currentTileSetAtlas == nullptr) {
-            ImGui::Text("None");
-        } else {
-            auto uv = tilemap->uv(state.currentTile);
-            ImGui::Image((void*)(currentTileSetAtlas->handle()),
-                         ImVec2(128, 128),
-                         ImVec2(uv.x, uv.y + uv.w),
-                         ImVec2(uv.x + uv.z, uv.y));
+        if (state.interactionBlocked && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            ImGui::OpenPopup("interaction_blocker");
         }
-    }
-
-    auto& currentDialog = context->state().currentDialog;
-    if (!ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup) && !currentDialog.open && !currentDialog.done) {
-        ImGui::OpenPopup("Are you sure?");
-        currentDialog.open = true;
-    }
-    if (ImGui::BeginPopupModal("Are you sure?")) {
-        ImGui::Text(currentDialog.text);
-        ImGui::Separator();
-        ImGui::Button("Yes");
-        ImGui::SameLine();
-        ImGui::Button("No");
-        ImGui::EndPopup();
+        auto ib_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(ImVec2(-100, -100), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(1, 1));
+        if (ImGui::BeginPopupModal("interaction_blocker", NULL, ib_flags)) {
+            if (!state.interactionBlocked) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
     }
 
     ImGui::End();
@@ -355,16 +398,8 @@ void
 Context::confirm(const char* text, std::function<void(bool)> callback)
 {
     auto& currentDialog = this->state_.currentDialog;
-    assert(!currentDialog.open && currentDialog.done);
-    currentDialog = { text, callback, false, false };
-}
-
-void
-Context::interaction(bool value)
-{
-    // Have to ensure that we're only calling this if there isn't already a dialog.
-    const auto& currentDialog = this->state_.currentDialog;
-    assert(!currentDialog.open && currentDialog.done);
+    if (currentDialog.done)
+        currentDialog = { text, callback, false };
 }
 
 void

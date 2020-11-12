@@ -6,16 +6,6 @@
 
 /*
 
-TODO: REWORK POPUPS
-There should be a generic way to:
-1. Confirm if the user wants to do <SOMETHING>.
-    -> Callback for user's decision.
-2. Block user interaction, until <SOMETHING> finishes.
-    -> Completion token to test if <SOMETHING> has finished.
-    -> Completion token has to be thread-safe.
-
-ONLY ONE POPUP SHOULD BE ACTIVE AT A TIME.
-
 TODO: store tiles 2D array instead of 1D
 TODO: automatically resize tilemap as needed by growing/shrinking the arrays
 
@@ -46,10 +36,12 @@ main(void)
 
     ui::Context context(&window);
 
-    auto tilemap = std::move(*tile::TileMap::Load("SAMPLE_MAP.json"));
+    auto* tilemap = tile::TileMap::Load("SAMPLE_MAP.json");
 
     auto& state = context.state();
-    state.tileMap = &tilemap;
+    state.tileMap = tilemap;
+    // state.tileMapSaved = true;
+    state.tileMapPath = "SAMPLE_MAP.json";
 
     // TODO: maybe refactor this a bit
     bool is_dragging = false;
@@ -110,12 +102,12 @@ main(void)
         renderer.begin(camera);
 
         // TODO: test this properly
-        glm::vec3 tileScale = { (float)tilemap.tileSize() / 2.f, (float)tilemap.tileSize() / 2.f, 1.f };
-        for (size_t row = 0; row < tilemap.rows(); ++row) {
-            for (size_t column = 0; column < tilemap.columns(); ++column) {
-                auto tile = tilemap.get(column, row);
-                auto tileset = tilemap.tileset(tile);
-                auto uv = tilemap.uv(tile);
+        glm::vec3 tileScale = { (float)tilemap->tileSize() / 2.f, (float)tilemap->tileSize() / 2.f, 1.f };
+        for (size_t row = 0; row < tilemap->rows(); ++row) {
+            for (size_t column = 0; column < tilemap->columns(); ++column) {
+                auto tile = tilemap->get(column, row);
+                auto tileset = tilemap->tileset(tile);
+                auto uv = tilemap->uv(tile);
                 auto model = glm::translate(glm::mat4(1), { column * 32.f, row * 32.f, 0.f });
                 model = glm::scale(model, tileScale);
                 renderer.draw(&tileset->atlas(), uv, model);

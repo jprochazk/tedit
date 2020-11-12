@@ -75,6 +75,7 @@ private:
 class TileMap
 {
 public:
+    TileMap();
     TileMap(const std::string& name, uint32_t columns, uint32_t rows, uint32_t tileSize);
 
     void add(TileSet* tileset);
@@ -99,11 +100,9 @@ public:
     size_t size();
 
     static void Save(TileMap& tm, const std::string& path);
-    static std::optional<TileMap> Load(const std::string& path);
+    static TileMap* Load(const std::string& path);
 
 private:
-    TileMap();
-
     std::string name_;
     uint32_t columns_;
     uint32_t rows_;
