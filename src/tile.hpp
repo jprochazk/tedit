@@ -95,10 +95,6 @@ public:
     std::vector<TileSet*>& tilesets();
     std::vector<std::string>& tilesetPaths();
 
-    std::vector<Tile>::iterator begin();
-    std::vector<Tile>::iterator end();
-    size_t size();
-
     static void Save(TileMap& tm, const std::string& path);
     static std::unique_ptr<TileMap> Load(const std::string& path);
 
@@ -107,7 +103,7 @@ private:
     uint32_t columns_;
     uint32_t rows_;
     uint32_t tileSize_;
-    std::vector<Tile> tiles_;
+    std::vector<std::vector<Tile>> tiles_;
     std::vector<TileSet*> tileSets_;
     std::vector<std::string> tileSetPaths_;
 }; // class TileMap

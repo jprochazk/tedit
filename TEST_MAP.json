@@ -1,1 +1,1 @@
-{"columns":3,"name":"test","rows":3,"tileSets":["TILESET.png"],"tileSize":32,"tiles":[18,50,82,19,51,83,20,52,84]}
+{"columns":3,"name":"test","rows":3,"tileSets":["TILESET.png","CHAMPION.png"],"tileSize":32,"tiles":[[18,50,82],[19,51,83],[20,52,84]]}

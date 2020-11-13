@@ -119,12 +119,12 @@ TileMap::remove(TileSet* tileset)
 Tile
 TileMap::get(uint32_t x, uint32_t y)
 {
-    return this->tiles_[x + y * this->columns_];
+    return this->tiles_[y][x];
 }
 void
 TileMap::set(uint32_t x, uint32_t y, Tile value)
 {
-    this->tiles_[x + y * this->columns_] = value;
+    this->tiles_[y][x] = value;
 }
 glm::vec4
 TileMap::uv(Tile tile) const
@@ -174,22 +174,6 @@ TileMap::tilesetPaths()
     return this->tileSetPaths_;
 }
 
-std::vector<Tile>::iterator
-TileMap::begin()
-{
-    return this->tiles_.begin();
-}
-std::vector<Tile>::iterator
-TileMap::end()
-{
-    return this->tiles_.end();
-}
-size_t
-TileMap::size()
-{
-    return this->tiles_.size();
-}
-
 static std::unordered_map<std::string, std::unique_ptr<TileSet>> tileSetCache;
 // NOTE: thread unsafe
 TileSet*
@@ -230,7 +214,6 @@ TileMap::Save(TileMap& tm, const std::string& path)
     }
 }
 
-// NOTE: thread unsafe
 std::unique_ptr<TileMap>
 TileMap::Load(const std::string& path)
 {
@@ -243,7 +226,7 @@ TileMap::Load(const std::string& path)
         uint32_t rows = json["rows"];
         uint32_t tileSize = json["tileSize"];
         // TODO: layers
-        std::vector<Tile> tiles = json["tiles"];
+        std::vector<std::vector<Tile>> tiles = json["tiles"];
         std::vector<std::string> tileSetSources = json["tileSets"];
 
         std::vector<TileSet*> tileSets;

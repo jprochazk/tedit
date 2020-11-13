@@ -26,7 +26,7 @@ struct ConfirmDialog
 struct ContextState
 {
     std::string tileMapPath;
-    bool tileMapSaved = false;
+    bool tileMapSaved = true;
     std::unique_ptr<tile::TileMap> tileMap = nullptr;
     tile::Tile currentTile = 0;
     uint16_t tileSetIndex = 0;

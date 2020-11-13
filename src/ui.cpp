@@ -8,8 +8,11 @@
 #include <imgui/backends/imgui_impl_opengl3.h>
 
 namespace ImGui {
-// ImGui::InputText() with std::string
-// Because text input needs dynamic resizing, we need to setup a callback to grow the capacity
+// Taken from imgui/misc/cpp/imgui_stdlib.cpp
+// This is a InputText widget which accepts a std::string* instead of char*
+// It automatically resizes the string and writes input to it.
+
+namespace detail {
 
 struct InputStringCallback_UserData
 {
@@ -38,6 +41,8 @@ InputTextCallback(ImGuiInputTextCallbackData* data)
     return 0;
 }
 
+} // namespace detail
+
 bool
 InputString(const char* label,
     std::string* str,
@@ -48,18 +53,20 @@ InputString(const char* label,
     IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
     flags |= ImGuiInputTextFlags_CallbackResize;
 
-    InputStringCallback_UserData cb_user_data;
+    detail::InputStringCallback_UserData cb_user_data;
     cb_user_data.Str = str;
     cb_user_data.ChainCallback = callback;
     cb_user_data.ChainCallbackUserData = user_data;
-    return InputText(label, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
-}
+    return InputText(label, (char*)str->c_str(), str->capacity() + 1, flags, detail::InputTextCallback, &cb_user_data);
 }
 
-// WARNING: Does not work with multiple contexts
+} // namespace ImGui
 
 namespace ui {
 
+/**
+ * Initialize ImGui context and OpenGL + GLFW backend.
+ */
 void
 Init_ImGUI(GLFWwindow* window)
 {
@@ -70,10 +77,12 @@ Init_ImGUI(GLFWwindow* window)
     ImGui_ImplOpenGL3_Init(NULL);
 
     auto& io = ImGui::GetIO();
-
     io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 }
 
+/**
+ * Destroy ImGui context and OpenGL + GLFW backend.
+ */
 void
 Deinit_ImGUI()
 {
@@ -82,8 +91,11 @@ Deinit_ImGUI()
     ImGui::DestroyContext();
 }
 
+/**
+ * Returns all strings from `paths` which are not in `existing`.
+ */
 std::vector<std::string>
-Helper_GetUniquePaths(const std::vector<std::string>& paths, const std::vector<std::string>& existing)
+GetUniquePaths(const std::vector<std::string>& paths, const std::vector<std::string>& existing)
 {
     std::vector<std::string> unique;
     for (auto& file : paths) {
@@ -101,16 +113,22 @@ Helper_GetUniquePaths(const std::vector<std::string>& paths, const std::vector<s
     return unique;
 }
 
+/**
+ * Open the native file dialog for saving tilemaps.
+ */
 void
 Dialog_SaveTileMap(Context* context)
 {
     auto& state = context->state();
+    // block interaction with the window while the native dialog is active
     state.interactionBlocked = true;
     context->window()->openDialog(Window::Dialog::SaveFile,
         "Save Tile Map",
         { "JSON Files", "*.json" },
         false,
         [=](bool success, std::vector<std::string>& input) {
+            // file dialogs are opened on another thread.
+            // microtasks are executed on the main thread.
             context->microtask([=] {
                 auto& state = context->state();
                 // TODO: notify user about failure
@@ -120,21 +138,28 @@ Dialog_SaveTileMap(Context* context)
                     state.tileMapPath = path;
                     tile::TileMap::Save(*state.tileMap, path);
                 }
+                // unblock window interaction
                 state.interactionBlocked = false;
             });
         });
 }
 
+/**
+ * Open the native file dialog for loading tilemaps.
+ */
 void
 Dialog_LoadTileMap(Context* context)
 {
     auto& state = context->state();
+    // block interaction with the window while the native dialog is active
     state.interactionBlocked = true;
     context->window()->openDialog(Window::Dialog::OpenFile,
         "Open Tile Map",
         { "JSON Files", "*.json" },
         false,
         [=](bool success, std::vector<std::string>& input) {
+            // file dialogs are opened on another thread.
+            // microtasks are executed on the main thread.
             context->microtask([=] {
                 auto& state = context->state();
                 // TODO: notify user about failure
@@ -142,17 +167,22 @@ Dialog_LoadTileMap(Context* context)
                     auto path = fs::absolute(input[0]).generic_string();
                     // assuming that tileMap is saved
                     assert(state.tileMapSaved);
+                    // reset all state related to tile/tilemap.
                     state.currentTile = 0;
                     state.tileMap = tile::TileMap::Load(path);
                     state.tileMapSaved = true;
                     state.tileMapPath = path;
                     state.tileSetIndex = 0;
                 }
+                // unblock window interaction
                 state.interactionBlocked = false;
             });
         });
 }
 
+/**
+ * Open the native file dialog for loading tilesets.
+ */
 void
 Dialog_AddTileSet(Context* context)
 {
@@ -161,17 +191,21 @@ Dialog_AddTileSet(Context* context)
     // we should not open the dialog if there is no open tileMap.
     assert(tilemap != nullptr);
 
+    // block interaction with the window while the native dialog is active
     state.interactionBlocked = true;
     context->window()->openDialog(Window::Dialog::OpenFile,
         "Select Tile Set(s)",
         { "Image Files", "*.png", "*.jpg", "*.jpeg" },
         false,
         [=](bool success, std::vector<std::string>& input) {
+            // file dialogs are opened on another thread.
+            // microtasks are executed on the main thread.
             context->microtask([=] {
                 auto& state = context->state();
                 // TODO: notify user about failure
                 if (success) {
-                    auto selection = Helper_GetUniquePaths(input, state.tileMap->tilesetPaths());
+                    // we only want to add tilesets that aren't already present.
+                    auto selection = GetUniquePaths(input, state.tileMap->tilesetPaths());
                     std::cout << "Added tilesets: " << std::endl;
                     for (auto& file : selection) {
                         if (!fs::exists(file))
@@ -179,18 +213,27 @@ Dialog_AddTileSet(Context* context)
                         auto* loaded = tile::TileSet::Load(file);
                         if (loaded) {
                             std::cout << file << std::endl;
+                            // add the tileset to the current tilemap
                             state.tileMap->add(loaded);
                         }
                     }
                 }
+                // unblock window interaction
                 state.interactionBlocked = false;
             });
         });
 }
 
+/**
+ * Rendering for the "New Tile Map" input popup
+ */
 void
-Render_NewTileMapPopup(Context* context)
+Render_NewTileMapPopup(Context* context, bool* is_open)
 {
+    if (*is_open && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+        ImGui::OpenPopup("New Tile Map");
+    }
+
     auto& state = context->state();
     auto flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     if (ImGui::BeginPopupModal("New Tile Map", NULL, flags)) {
@@ -211,9 +254,11 @@ Render_NewTileMapPopup(Context* context)
         }
 
         if (ImGui::Button("+")) {
+            // TODO: create new tilemap here
             std::cout << "Name: " << name << std::endl;
             std::cout << "Tile size: " << options[selected] << std::endl;
             ImGui::CloseCurrentPopup();
+            *is_open = false;
 
             // Reset inputs
             name = "";
@@ -222,6 +267,7 @@ Render_NewTileMapPopup(Context* context)
         ImGui::SameLine();
         if (ImGui::Button("x")) {
             ImGui::CloseCurrentPopup();
+            *is_open = false;
 
             // Reset inputs
             name = "";
@@ -232,66 +278,89 @@ Render_NewTileMapPopup(Context* context)
     }
 }
 
+/**
+ * Helper for saving current TileMap.
+ * Checks if the TileMap has a save path already, and saves there. Otherwise, opens a native save file dialog.
+ */
 void
-Render_TileSetWindow(Context* context, ImGuiIO& io)
+Save_TileMap(Context* context)
 {
+    auto& state = context->state();
+    if (state.tileMapPath.empty() && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+        Dialog_SaveTileMap(context);
+    } else {
+        state.tileMapSaved = true;
+        tile::TileMap::Save(*state.tileMap, state.tileMapPath);
+    }
+}
+
+/**
+ * Render the main UI window.
+ */
+void
+Render_EditorMainWindow(Context* context, ImGuiIO& io)
+{
+    // TODO(?): big function, may benefit from being split up.
+
     ImGui::SetNextWindowSize(ImVec2(320, 380));
     auto flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
                  ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
-    bool wnd_open = ImGui::Begin("Tile Set", NULL, flags);
-    if (!wnd_open)
+    if (!ImGui::Begin("Tile Set", NULL, flags))
         return ImGui::End();
 
     auto& state = context->state();
     auto* window = context->window();
+    auto& style = ImGui::GetStyle();
 
+    // Editor UI menu
     if (ImGui::BeginMenuBar()) {
-        // TODO: finish this
+
+        // New Tile Map
+        // Menu->New or CTRL+N
+        // Popup must not be open
+        static bool new_tmp_open = false;
         if ((ImGui::MenuItem("New", "CTRL+N") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_N)) &&
             !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            // if the current tile map has unsaved changes
             if (!state.tileMapSaved) {
                 context->confirm("Save unsaved progress?", [&](bool choice) {
                     if (choice) {
-                        if (state.tileMapPath.empty()) {
-                            Dialog_SaveTileMap(context);
-                        } else {
-                            state.tileMapSaved = true;
-                            tile::TileMap::Save(*state.tileMap, state.tileMapPath);
-                        }
+                        Save_TileMap(context);
                     }
-                    ImGui::OpenPopup("New Tile Map");
+                    new_tmp_open = true;
                 });
             } else {
-                ImGui::OpenPopup("New Tile Map");
+                // otherwise just open the new tilemap popup
+                new_tmp_open = true;
             }
         }
-        Render_NewTileMapPopup(context);
+        Render_NewTileMapPopup(context, &new_tmp_open);
 
+        // Save Tile Map
+        // Menu->Save or CTRL+S
         if (ImGui::MenuItem("Save", "CTRL+S") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_S)) {
+            // only saves if we haven't already saved.
             if (!state.tileMapSaved) {
-                if (state.tileMapPath.empty() && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-                    // where to save?
-                    Dialog_SaveTileMap(context);
-                } else {
-                    state.tileMapSaved = true;
-                    tile::TileMap::Save(*state.tileMap, state.tileMapPath);
-                }
+                // Only opens native file dialog if we don't have a stored save path
+                Save_TileMap(context);
             }
         }
+
+        // Save Tile Map As
+        // Menu->Save As, no shortcut
         if ((ImGui::MenuItem("Save As")) && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            // Always opens native save file dialog
             Dialog_SaveTileMap(context);
         }
+
+        // Open Tile Map
+        // Menu->Open or CTRL+O
         if ((ImGui::MenuItem("Open", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) &&
             !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
             if (!state.tileMapSaved) {
                 context->confirm("Save unsaved progress?", [&](bool choice) {
                     if (choice) {
-                        if (state.tileMapPath.empty()) {
-                            Dialog_SaveTileMap(context);
-                        } else {
-                            state.tileMapSaved = true;
-                            tile::TileMap::Save(*state.tileMap, state.tileMapPath);
-                        }
+                        Save_TileMap(context);
                     }
                     Dialog_LoadTileMap(context);
                 });
@@ -302,151 +371,167 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         ImGui::EndMenuBar();
     }
 
+    // Editor UI body
+
     auto* tilemap = state.tileMap.get();
-
     { // tileset selection
-        std::vector<std::string>* tspaths = nullptr;
         if (tilemap != nullptr) {
-            tspaths = &tilemap->tilesetPaths();
-        }
+            std::vector<std::string>& tspaths = tilemap->tilesetPaths();
 
-        const char* current_tileset_path = "Select a tile set...";
-        if (tspaths != nullptr && state.tileSetIndex < tspaths->size()) {
-            current_tileset_path = (*tspaths)[state.tileSetIndex].c_str();
-        } else {
-            current_tileset_path = "Select a tile set...";
-        }
+            // current_tileset_path is displayed in the selection box
+            // there should be no way to reach an invalid tileset index.
+            const char* current_tileset_path = "Select a tile set...";
+            if (state.tileSetIndex < tspaths.size()) {
+                current_tileset_path = tspaths[state.tileSetIndex].c_str();
+            } else {
+                current_tileset_path = "Select a tile set...";
+            }
 
-        if (ImGui::BeginCombo("Tilesets", current_tileset_path)) {
-            if (tspaths != nullptr) {
-                for (size_t i = 0; i < tspaths->size(); ++i) {
-                    if (ImGui::Selectable((*tspaths)[i].c_str())) {
+            if (ImGui::BeginCombo("Tilesets", current_tileset_path)) {
+                for (size_t i = 0; i < tspaths.size(); ++i) {
+                    if (ImGui::Selectable(tspaths[i].c_str())) {
                         state.tileSetIndex = i;
                     }
                 }
+                ImGui::EndCombo();
             }
-            ImGui::EndCombo();
-        }
-        ImGui::SameLine();
+            ImGui::SameLine();
 
-        if (ImGui::SmallButton("+") && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-            spdlog::info("Add tileset");
-            Dialog_AddTileSet(context);
-            state.tileMapSaved = false;
+            if (ImGui::SmallButton("+") && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+                spdlog::info("Add tileset");
+                Dialog_AddTileSet(context);
+                state.tileMapSaved = false;
+            }
         }
     }
     { // tileset display
-        std::vector<tile::TileSet*>* tilesets = nullptr;
         if (tilemap != nullptr) {
-            tilesets = &tilemap->tilesets();
-        }
+            std::vector<tile::TileSet*> tilesets = tilemap->tilesets();
 
-        if (tilesets != nullptr && state.tileSetIndex < tilesets->size()) {
-            // TODO: always zoom into current middle of the view instead of origin
-            static ImVec2 offset(0.0f, 0.0f);
-            static float zoom = 1.0f;
+            if (state.tileSetIndex < tilesets.size()) {
+                // TODO: always zoom into current middle of the view instead of origin
+                // It's actually a bit of work:
+                // #1:  Render around CENTER, not BOTTOM_LEFT, so that [0, 0] in display
+                //      corresponds to tile at middle of current tileset.
+                // #2:  Zoom should be applied to the view, and not the tileset width/height.
+                // #3:  All calculations need to be done before drawing.
+                // #4:  (?) Correct the UVs of the image, so that it doesn't need flip when drawing.
+                // #5:  Use the same algorithm as in src/camera.cpp:
+                //          1. Get mouse position in display before zoom.
+                //          2. Apply zoom.
+                //          3. Get mouse position in display after zoom.
+                //          4. Translate by (#1 - #3).
 
-            ImVec2 display_p0 = ImGui::GetCursorScreenPos();    // ImDrawList API uses screen coordinates!
-            ImVec2 display_sz = ImGui::GetContentRegionAvail(); // Resize display to what's available
-            if (display_sz.x < 50.0f)
-                display_sz.x = 50.0f;
-            if (display_sz.y < 50.0f)
-                display_sz.y = 50.0f;
-            if (display_sz.y > 320.0f)
-                display_sz.y = 320.0f;
-            ImVec2 display_p1 = ImVec2(display_p0.x + display_sz.x, display_p0.y + display_sz.y);
+                static ImVec2 offset(0.0f, 0.0f);
+                static float zoom = 1.0f;
 
-            // Draw border and background color
-            ImGuiIO& io = ImGui::GetIO();
-            ImDrawList* draw_list = ImGui::GetWindowDrawList();
-            draw_list->AddRectFilled(display_p0, display_p1, IM_COL32(50, 50, 50, 255));
-            draw_list->AddRect(display_p0, display_p1, IM_COL32(255, 255, 255, 255));
+                // Get the ImGui cursor in screen space
+                ImVec2 display_p0 = ImGui::GetCursorScreenPos();
+                // Get size of the tileset display
+                ImVec2 display_sz = ImGui::GetContentRegionAvail();
+                display_sz.x = (display_sz.x < 50.0f ? 50.0f : display_sz.x);
+                display_sz.y = (display_sz.y < 50.0f ? 50.0f : (display_sz.y > 320.0f ? 320.0f : display_sz.y));
+                ImVec2 display_p1 = ImVec2(display_p0.x + display_sz.x, display_p0.y + display_sz.y);
 
-            // This will catch our interactions
-            auto display_rect_flags = ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight |
-                                      ImGuiButtonFlags_MouseButtonMiddle;
-            ImGui::InvisibleButton("display", display_sz, display_rect_flags);
-            const bool is_hovered = ImGui::IsItemHovered();                        // Hovered
-            const bool is_active = ImGui::IsItemActive();                          // Held
-            const ImVec2 origin(display_p0.x + offset.x, display_p0.y + offset.y); // Lock scrolled origin
-            const ImVec2 mouse_pos_in_display(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
+                // Draw border and background color
+                ImGuiIO& io = ImGui::GetIO();
+                ImDrawList* draw_list = ImGui::GetWindowDrawList();
+                draw_list->AddRectFilled(display_p0, display_p1, IM_COL32(50, 50, 50, 255));
+                draw_list->AddRect(display_p0, display_p1, IM_COL32(255, 255, 255, 255));
 
-            const float mouse_threshold_for_pan = 0.0f;
-            // pan
-            if (is_active && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, mouse_threshold_for_pan)) {
-                offset.x += io.MouseDelta.x;
-                offset.y += io.MouseDelta.y;
-            }
-            // zoom
-            if (is_hovered) {
-                zoom = std::clamp(zoom - io.MouseWheel / 10.0f, 0.1f, 5.0f);
-            }
+                // Create an invisible button which will catch inputs
+                // on the tileset display
+                auto display_rect_flags = ImGuiButtonFlags_MouseButtonLeft | ImGuiButtonFlags_MouseButtonRight |
+                                          ImGuiButtonFlags_MouseButtonMiddle;
+                ImGui::InvisibleButton("display", display_sz, display_rect_flags);
+                const bool is_hovered = ImGui::IsItemHovered();
+                const bool is_active = ImGui::IsItemActive();
+                // Calculate origin, then use it to calculate where the mouse cursor is
+                const ImVec2 origin(display_p0.x + offset.x, display_p0.y + offset.y);
+                const ImVec2 mouse_pos_in_display(io.MousePos.x - origin.x, io.MousePos.y - origin.y);
 
-            draw_list->PushClipRect(display_p0, display_p1, true);
+                // Pan the tileset display
+                if (is_active && ImGui::IsMouseDragging(ImGuiMouseButton_Middle, 0.0f)) {
+                    offset.x += io.MouseDelta.x;
+                    offset.y += io.MouseDelta.y;
+                }
+                // Zoom into tileset display
+                if (is_hovered) {
+                    // Minimum zoom = x0.1 (near camera limit)
+                    // Maximum zoom = x5.0 (it can fit an image with 1600px width)
+                    zoom = std::clamp(zoom - io.MouseWheel / 10.0f, 0.1f, 5.0f);
+                }
 
-            // Get selected tileset image
-            auto* currentTileSet = (*tilesets)[state.tileSetIndex];
-            auto* currentTileSetAtlas = &currentTileSet->atlas();
+                // Clip what we're drawing next
+                draw_list->PushClipRect(display_p0, display_p1, true);
 
-            // draw tileset
-            auto tileset_p0 = ImVec2(origin.x, origin.y - (currentTileSetAtlas->height() / zoom) + display_sz.y);
-            auto tileset_p1 = ImVec2(origin.x + (currentTileSetAtlas->width() / zoom), origin.y + display_sz.y);
-            // we flip image data on load (src/gfx/image.cpp, Image constructor),
-            // but ImGUI also flips them, so we need to flip again to draw correctly.
-            draw_list->AddImage(
-                (void*)(currentTileSetAtlas->handle()), tileset_p0, tileset_p1, ImVec2(0, 1), ImVec2(1, 0));
+                // Get selected tileset image
+                auto* currentTileSet = tilesets[state.tileSetIndex];
+                auto& currentTileSetAtlas = currentTileSet->atlas();
 
-            auto zoomed_tileSize = tilemap->tileSize() / zoom;
-            if (is_hovered) {
-                // calculate mouse pos on atlas
-                auto mx = (mouse_pos_in_display.x) * zoom;
-                auto my = -(mouse_pos_in_display.y - display_sz.y) * zoom;
+                // Draw the tileset
+                // We're drawing it flipped on both axes due to how the image data is loaded and handled inside ImGui.
+                // TODO: investigate a cleaner solution
+                auto tileset_p0 = ImVec2(origin.x, origin.y - (currentTileSetAtlas.height() / zoom) + display_sz.y);
+                auto tileset_p1 = ImVec2(origin.x + (currentTileSetAtlas.width() / zoom), origin.y + display_sz.y);
+                draw_list->AddImage(
+                    (void*)(currentTileSetAtlas.handle()), tileset_p0, tileset_p1, ImVec2(0, 1), ImVec2(1, 0));
 
-                // check if mouse is intersecting atlas
-                auto atlasW = (float)currentTileSetAtlas->width();
-                auto atlasH = (float)currentTileSetAtlas->height();
-                if (mx > 0 && mx < atlasW && my > 0 && my < atlasH) {
-                    auto tile_column = std::floorf(mx / tilemap->tileSize());
-                    auto tile_row = std::floorf(my / tilemap->tileSize());
+                // Get the currently hovered + active tile
+                // And set the current tile on click
+                auto zoomed_tileSize = tilemap->tileSize() / zoom;
+                if (is_hovered) {
+                    // calculate mouse pos on atlas
+                    auto mx = (mouse_pos_in_display.x) * zoom;
+                    auto my = -(mouse_pos_in_display.y - display_sz.y) * zoom;
 
-                    // draw tile highlight
-                    auto hover_p0 = ImVec2(origin.x + (zoomed_tileSize * tile_column),
-                        origin.y + display_sz.y - (zoomed_tileSize * tile_row));
-                    auto hover_p1 = ImVec2(hover_p0.x + zoomed_tileSize, hover_p0.y - zoomed_tileSize);
-                    draw_list->AddRectFilled(hover_p0, hover_p1, IM_COL32(120, 120, 120, 100));
+                    // check if mouse is intersecting atlas
+                    auto atlasW = (float)currentTileSetAtlas.width();
+                    auto atlasH = (float)currentTileSetAtlas.height();
+                    if (mx > 0 && mx < atlasW && my > 0 && my < atlasH) {
+                        auto tile_column = std::floorf(mx / tilemap->tileSize());
+                        auto tile_row = std::floorf(my / tilemap->tileSize());
 
-                    if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
-                        // calculate tile ID
-                        auto tilesPerRow = atlasW / (float)tilemap->tileSize();
-                        auto tileSetId = state.tileSetIndex;
-                        // X and Y are reversed because of UV flip when drawing tileset atlas (see above)
-                        auto tile_id = tile_row + tile_column * tilesPerRow;
+                        // draw tile highlight
+                        auto hover_p0 = ImVec2(origin.x + (zoomed_tileSize * tile_column),
+                            origin.y + display_sz.y - (zoomed_tileSize * tile_row));
+                        auto hover_p1 = ImVec2(hover_p0.x + zoomed_tileSize, hover_p0.y - zoomed_tileSize);
+                        draw_list->AddRectFilled(hover_p0, hover_p1, IM_COL32(120, 120, 120, 100));
 
-                        // set current tile
-                        state.currentTile = 0;
-                        tile::TileSetId(state.currentTile, state.tileSetIndex);
-                        tile::TileId(state.currentTile, tile_id);
+                        if (ImGui::IsMouseClicked(ImGuiMouseButton_Left)) {
+                            // calculate tile ID
+                            auto tilesPerRow = atlasW / (float)tilemap->tileSize();
+                            auto tileSetId = state.tileSetIndex;
+                            // X and Y are reversed because of UV flip when drawing tileset atlas (see above @AddImage)
+                            auto tile_id = tile_row + tile_column * tilesPerRow;
+
+                            // set current tile
+                            state.currentTile = 0;
+                            tile::TileSetId(state.currentTile, state.tileSetIndex);
+                            tile::TileId(state.currentTile, tile_id);
+                        }
                     }
                 }
-            }
 
-            // draw active tile
-            if (state.tileSetIndex == tile::TileSetId(state.currentTile)) {
-                auto currentTileId = tile::TileId(state.currentTile);
-                auto uvPerRow = (currentTileSetAtlas->width() / tilemap->tileSize());
-                auto tile_x = zoomed_tileSize * (currentTileId / uvPerRow);
-                auto tile_y = zoomed_tileSize * (currentTileId % uvPerRow);
-                auto active_p0 = ImVec2(origin.x + tile_x, origin.y + display_sz.y - tile_y);
-                auto active_p1 = ImVec2(active_p0.x + zoomed_tileSize, active_p0.y - zoomed_tileSize);
-                draw_list->AddRect(active_p0, active_p1, IM_COL32(84, 229, 255, 255), 0.0f, 15, 3.0f);
-            }
+                // draw active tile
+                if (state.tileSetIndex == tile::TileSetId(state.currentTile)) {
+                    auto currentTileId = tile::TileId(state.currentTile);
+                    auto uvPerRow = (currentTileSetAtlas.width() / tilemap->tileSize());
+                    auto tile_x = zoomed_tileSize * (currentTileId / uvPerRow);
+                    auto tile_y = zoomed_tileSize * (currentTileId % uvPerRow);
+                    auto active_p0 = ImVec2(origin.x + tile_x, origin.y + display_sz.y - tile_y);
+                    auto active_p1 = ImVec2(active_p0.x + zoomed_tileSize, active_p0.y - zoomed_tileSize);
+                    draw_list->AddRect(active_p0, active_p1, IM_COL32(84, 229, 255, 255), 0.0f, 15, 3.0f);
+                }
 
-            draw_list->PopClipRect();
+                draw_list->PopClipRect();
+            }
         }
     }
 
     /* Render popups */
     {
+        // confirm dialog is triggered with Context::confirm
         auto& currentDialog = state.currentDialog;
         if (!currentDialog.done && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
             ImGui::OpenPopup("confirm_dialog");
@@ -455,6 +540,7 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         if (ImGui::BeginPopupModal("confirm_dialog", NULL, popup_flags)) {
             ImGui::Text(currentDialog.text);
             ImGui::Separator();
+
             if (ImGui::Button("Yes")) {
                 if (currentDialog.callback)
                     currentDialog.callback(true);
@@ -512,7 +598,7 @@ Context::render()
     ImGui::NewFrame();
 
     ImGui::ShowDemoWindow();
-    Render_TileSetWindow(this, io);
+    Render_EditorMainWindow(this, io);
 
     this->state_.hasMouseFocus = io.WantCaptureMouse;
     this->state_.hasKeyboardFocus = io.WantCaptureKeyboard;
