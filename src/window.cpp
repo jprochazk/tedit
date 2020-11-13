@@ -118,7 +118,6 @@ Window::openDialog(Dialog type,
     std::function<void(bool, std::vector<std::string>&)> callback)
 {
     if (this->dialogOpen_) {
-        spdlog::warn("Dialog already open!");
         return;
     }
 

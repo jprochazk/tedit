@@ -8,22 +8,11 @@
 
 TODO: store tiles 2D array instead of 1D
 TODO: automatically resize tilemap as needed by growing/shrinking the arrays
-
 TODO: painting tiles with pencil-like tool (make this generic to allow for other tools?)
 -> tilemap[hovered_tile.x, hovered_tile.y] = currentTile
 
-TODO: new/save/save as/load dialogs for tilemaps
-* new       -> tilemap name, starting size, tile size
-
-* save      -> if new tilemap (not saved)
-                -> open native file dialog
-                -> confirm if file already exists
-            -> else save to previous save location
-
-* save as   -> open native file dialog
-            -> confirm if file already exists
-
-* load      -> open native file dialog
+TODO: refactor
+There is a lot of duplicated code + the control flow isn't clear enough in src/ui.cpp.
 
 */
 
@@ -36,11 +25,9 @@ main(void)
 
     ui::Context context(&window);
 
-    auto* tilemap = tile::TileMap::Load("SAMPLE_MAP.json");
-
     auto& state = context.state();
-    state.tileMap = tilemap;
-    // state.tileMapSaved = true;
+    state.tileMap = tile::TileMap::Load("SAMPLE_MAP.json");
+    state.tileMapSaved = true;
     state.tileMapPath = "SAMPLE_MAP.json";
 
     // TODO: maybe refactor this a bit
@@ -98,6 +85,7 @@ main(void)
         /* Poll for and process events */
         window.pollInput();
         context.poll();
+        auto* tilemap = context.state().tileMap.get();
 
         renderer.begin(camera);
 

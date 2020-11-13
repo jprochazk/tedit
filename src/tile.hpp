@@ -100,7 +100,7 @@ public:
     size_t size();
 
     static void Save(TileMap& tm, const std::string& path);
-    static TileMap* Load(const std::string& path);
+    static std::unique_ptr<TileMap> Load(const std::string& path);
 
 private:
     std::string name_;

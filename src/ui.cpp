@@ -7,6 +7,55 @@
 #include <imgui/backends/imgui_impl_glfw.h>
 #include <imgui/backends/imgui_impl_opengl3.h>
 
+namespace ImGui {
+// ImGui::InputText() with std::string
+// Because text input needs dynamic resizing, we need to setup a callback to grow the capacity
+
+struct InputStringCallback_UserData
+{
+    std::string* Str;
+    ImGuiInputTextCallback ChainCallback;
+    void* ChainCallbackUserData;
+};
+
+static int
+InputTextCallback(ImGuiInputTextCallbackData* data)
+{
+    InputStringCallback_UserData* user_data = (InputStringCallback_UserData*)data->UserData;
+    if (data->EventFlag == ImGuiInputTextFlags_CallbackResize) {
+        // Resize string callback
+        // If for some reason we refuse the new length (BufTextLen) and/or capacity (BufSize) we need to set them back
+        // to what we want.
+        std::string* str = user_data->Str;
+        IM_ASSERT(data->Buf == str->c_str());
+        str->resize(data->BufTextLen);
+        data->Buf = (char*)str->c_str();
+    } else if (user_data->ChainCallback) {
+        // Forward to user callback, if any
+        data->UserData = user_data->ChainCallbackUserData;
+        return user_data->ChainCallback(data);
+    }
+    return 0;
+}
+
+bool
+InputString(const char* label,
+    std::string* str,
+    ImGuiInputTextFlags flags = 0,
+    ImGuiInputTextCallback callback = (ImGuiInputTextCallback)0,
+    void* user_data = (void*)0)
+{
+    IM_ASSERT((flags & ImGuiInputTextFlags_CallbackResize) == 0);
+    flags |= ImGuiInputTextFlags_CallbackResize;
+
+    InputStringCallback_UserData cb_user_data;
+    cb_user_data.Str = str;
+    cb_user_data.ChainCallback = callback;
+    cb_user_data.ChainCallbackUserData = user_data;
+    return InputText(label, (char*)str->c_str(), str->capacity() + 1, flags, InputTextCallback, &cb_user_data);
+}
+}
+
 // WARNING: Does not work with multiple contexts
 
 namespace ui {
@@ -53,17 +102,62 @@ Helper_GetUniquePaths(const std::vector<std::string>& paths, const std::vector<s
 }
 
 void
-Dialog_NewTileMap(Context* context)
+Dialog_SaveTileMap(Context* context)
 {
     auto& state = context->state();
-    auto* tilemap = state.tileMap;
+    state.interactionBlocked = true;
+    context->window()->openDialog(Window::Dialog::SaveFile,
+        "Save Tile Map",
+        { "JSON Files", "*.json" },
+        false,
+        [=](bool success, std::vector<std::string>& input) {
+            context->microtask([=] {
+                auto& state = context->state();
+                // TODO: notify user about failure
+                if (success) {
+                    auto path = fs::absolute(input[0]).generic_string();
+                    state.tileMapSaved = true;
+                    state.tileMapPath = path;
+                    tile::TileMap::Save(*state.tileMap, path);
+                }
+                state.interactionBlocked = false;
+            });
+        });
+}
+
+void
+Dialog_LoadTileMap(Context* context)
+{
+    auto& state = context->state();
+    state.interactionBlocked = true;
+    context->window()->openDialog(Window::Dialog::OpenFile,
+        "Open Tile Map",
+        { "JSON Files", "*.json" },
+        false,
+        [=](bool success, std::vector<std::string>& input) {
+            context->microtask([=] {
+                auto& state = context->state();
+                // TODO: notify user about failure
+                if (success) {
+                    auto path = fs::absolute(input[0]).generic_string();
+                    // assuming that tileMap is saved
+                    assert(state.tileMapSaved);
+                    state.currentTile = 0;
+                    state.tileMap = tile::TileMap::Load(path);
+                    state.tileMapSaved = true;
+                    state.tileMapPath = path;
+                    state.tileSetIndex = 0;
+                }
+                state.interactionBlocked = false;
+            });
+        });
 }
 
 void
 Dialog_AddTileSet(Context* context)
 {
     auto& state = context->state();
-    auto* tilemap = state.tileMap;
+    auto* tilemap = state.tileMap.get();
     // we should not open the dialog if there is no open tileMap.
     assert(tilemap != nullptr);
 
@@ -73,9 +167,11 @@ Dialog_AddTileSet(Context* context)
         { "Image Files", "*.png", "*.jpg", "*.jpeg" },
         false,
         [=](bool success, std::vector<std::string>& input) {
-            context->microtask([context, tilemap, success, input] {
+            context->microtask([=] {
+                auto& state = context->state();
+                // TODO: notify user about failure
                 if (success) {
-                    auto selection = Helper_GetUniquePaths(input, tilemap->tilesetPaths());
+                    auto selection = Helper_GetUniquePaths(input, state.tileMap->tilesetPaths());
                     std::cout << "Added tilesets: " << std::endl;
                     for (auto& file : selection) {
                         if (!fs::exists(file))
@@ -83,14 +179,57 @@ Dialog_AddTileSet(Context* context)
                         auto* loaded = tile::TileSet::Load(file);
                         if (loaded) {
                             std::cout << file << std::endl;
-                            tilemap->add(loaded);
-                        } else // TODO: notify user that loading failed
-                            continue;
+                            state.tileMap->add(loaded);
+                        }
                     }
                 }
-                context->state().interactionBlocked = false;
+                state.interactionBlocked = false;
             });
         });
+}
+
+void
+Render_NewTileMapPopup(Context* context)
+{
+    auto& state = context->state();
+    auto flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
+    if (ImGui::BeginPopupModal("New Tile Map", NULL, flags)) {
+
+        static std::string name;
+        ImGui::InputString("Name", &name);
+
+        static int selected = 2;
+        const char* options[] = { "8x8", "16x16", "32x32", "64x64" };
+        const char* selectedText = (selected < IM_ARRAYSIZE(options) && selected > -1) ? options[selected] : "...";
+        if (ImGui::BeginCombo("Tile size", selectedText)) {
+            for (int i = 0; i < IM_ARRAYSIZE(options); ++i) {
+                if (ImGui::Selectable(options[i])) {
+                    selected = i;
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        if (ImGui::Button("+")) {
+            std::cout << "Name: " << name << std::endl;
+            std::cout << "Tile size: " << options[selected] << std::endl;
+            ImGui::CloseCurrentPopup();
+
+            // Reset inputs
+            name = "";
+            selected = 2;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("x")) {
+            ImGui::CloseCurrentPopup();
+
+            // Reset inputs
+            name = "";
+            selected = 2;
+        }
+
+        ImGui::EndPopup();
+    }
 }
 
 void
@@ -107,53 +246,63 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
     auto* window = context->window();
 
     if (ImGui::BeginMenuBar()) {
+        // TODO: finish this
         if ((ImGui::MenuItem("New", "CTRL+N") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_N)) &&
             !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
             if (!state.tileMapSaved) {
-                context->confirm("Would you like to save first?", [&](bool choice) {
+                context->confirm("Save unsaved progress?", [&](bool choice) {
                     if (choice) {
-                        spdlog::info("Save Tile Map");
-                    } else {
-                        spdlog::info("Discard Tile Map");
+                        if (state.tileMapPath.empty()) {
+                            Dialog_SaveTileMap(context);
+                        } else {
+                            state.tileMapSaved = true;
+                            tile::TileMap::Save(*state.tileMap, state.tileMapPath);
+                        }
                     }
-                    spdlog::info("New Tile Map");
+                    ImGui::OpenPopup("New Tile Map");
                 });
             } else {
-                spdlog::info("New Tile Map");
+                ImGui::OpenPopup("New Tile Map");
             }
         }
+        Render_NewTileMapPopup(context);
+
         if (ImGui::MenuItem("Save", "CTRL+S") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_S)) {
             if (!state.tileMapSaved) {
                 if (state.tileMapPath.empty() && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
                     // where to save?
-                    spdlog::info("Save Tile Map As");
+                    Dialog_SaveTileMap(context);
                 } else {
-                    spdlog::info("Save Tile Map");
+                    state.tileMapSaved = true;
+                    tile::TileMap::Save(*state.tileMap, state.tileMapPath);
                 }
             }
         }
         if ((ImGui::MenuItem("Save As")) && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-            spdlog::info("Save Tile Map As");
+            Dialog_SaveTileMap(context);
         }
         if ((ImGui::MenuItem("Open", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) &&
             !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
             if (!state.tileMapSaved) {
-                context->confirm("Would you like to save first?", [&](bool choice) {
+                context->confirm("Save unsaved progress?", [&](bool choice) {
                     if (choice) {
-                        spdlog::info("Save Tile Map");
-                    } else {
-                        spdlog::info("Discard Tile Map");
+                        if (state.tileMapPath.empty()) {
+                            Dialog_SaveTileMap(context);
+                        } else {
+                            state.tileMapSaved = true;
+                            tile::TileMap::Save(*state.tileMap, state.tileMapPath);
+                        }
                     }
-                    spdlog::info("Open Tile Map");
+                    Dialog_LoadTileMap(context);
                 });
             } else {
-                spdlog::info("Open Tile Map");
+                Dialog_LoadTileMap(context);
             }
         }
         ImGui::EndMenuBar();
     }
 
-    auto* tilemap = state.tileMap;
+    auto* tilemap = state.tileMap.get();
 
     { // tileset selection
         std::vector<std::string>* tspaths = nullptr;
@@ -183,6 +332,7 @@ Render_TileSetWindow(Context* context, ImGuiIO& io)
         if (ImGui::SmallButton("+") && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
             spdlog::info("Add tileset");
             Dialog_AddTileSet(context);
+            state.tileMapSaved = false;
         }
     }
     { // tileset display

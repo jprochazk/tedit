@@ -230,50 +230,44 @@ TileMap::Save(TileMap& tm, const std::string& path)
     }
 }
 
-static std::unordered_map<std::string, std::unique_ptr<TileMap>> tileMapCache;
 // NOTE: thread unsafe
-TileMap*
+std::unique_ptr<TileMap>
 TileMap::Load(const std::string& path)
 {
-    TileMap* out = nullptr;
-    if (auto it = tileMapCache.find(path); it == tileMapCache.end()) {
-        try {
-            std::ifstream file(path);
-            json json = json::parse(file);
+    try {
+        std::ifstream file(path);
+        json json = json::parse(file);
 
-            std::string name = json["name"];
-            uint32_t columns = json["columns"];
-            uint32_t rows = json["rows"];
-            uint32_t tileSize = json["tileSize"];
-            // TODO: layers
-            std::vector<Tile> tiles = json["tiles"];
-            std::vector<std::string> tileSetSources = json["tileSets"];
+        std::string name = json["name"];
+        uint32_t columns = json["columns"];
+        uint32_t rows = json["rows"];
+        uint32_t tileSize = json["tileSize"];
+        // TODO: layers
+        std::vector<Tile> tiles = json["tiles"];
+        std::vector<std::string> tileSetSources = json["tileSets"];
 
-            std::vector<TileSet*> tileSets;
-            std::vector<std::string> tileSetPaths;
-            tileSets.reserve(columns * rows);
-            tileSetPaths.reserve(columns * rows);
-            for (const auto& source : tileSetSources) {
-                tileSets.emplace_back(TileSet::Load(source));
-                tileSetPaths.emplace_back(std::move(source));
-            }
-
-            tileMapCache.emplace(path, std::move(std::make_unique<TileMap>()));
-            out = tileMapCache.at(path).get();
-            out->name_ = name;
-            out->columns_ = columns;
-            out->rows_ = rows;
-            out->tileSize_ = tileSize;
-            out->tiles_ = std::move(tiles);
-            out->tileSets_ = std::move(tileSets);
-            out->tileSetPaths_ = std::move(tileSetPaths);
-        } catch (std::exception& ex) {
-            spdlog::error("Error while loading tile map {}, {}", path, ex.what());
+        std::vector<TileSet*> tileSets;
+        std::vector<std::string> tileSetPaths;
+        tileSets.reserve(columns * rows);
+        tileSetPaths.reserve(columns * rows);
+        for (const auto& source : tileSetSources) {
+            tileSets.emplace_back(TileSet::Load(source));
+            tileSetPaths.emplace_back(std::move(source));
         }
-    } else {
-        out = tileMapCache.at(path).get();
+
+        auto out = std::make_unique<TileMap>();
+        out->name_ = name;
+        out->columns_ = columns;
+        out->rows_ = rows;
+        out->tileSize_ = tileSize;
+        out->tiles_ = std::move(tiles);
+        out->tileSets_ = std::move(tileSets);
+        out->tileSetPaths_ = std::move(tileSetPaths);
+        return std::move(out);
+    } catch (std::exception& ex) {
+        spdlog::error("Error while loading tile map {}, {}", path, ex.what());
+        return nullptr;
     }
-    return out;
 }
 
 } // namespace tile
