@@ -116,15 +116,15 @@ TileMap::remove(TileSet* tileset)
     }
 }
 
-Tile
-TileMap::get(uint32_t x, uint32_t y)
+const Tile&
+TileMap::operator()(uint32_t x, uint32_t y) const
 {
     return this->tiles_[y][x];
 }
-void
-TileMap::set(uint32_t x, uint32_t y, Tile value)
+Tile&
+TileMap::operator()(uint32_t x, uint32_t y)
 {
-    this->tiles_[y][x] = value;
+    return this->tiles_[y][x];
 }
 glm::vec4
 TileMap::uv(Tile tile) const

@@ -81,8 +81,8 @@ public:
     void add(TileSet* tileset);
     void remove(TileSet* tileset);
 
-    Tile get(uint32_t x, uint32_t y);
-    void set(uint32_t x, uint32_t y, Tile value);
+    const Tile& operator()(uint32_t x, uint32_t y) const;
+    Tile& operator()(uint32_t x, uint32_t y);
 
     glm::vec4 uv(Tile tile) const;
     const TileSet* tileset(Tile tile) const;

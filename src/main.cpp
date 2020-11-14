@@ -7,11 +7,9 @@
 /*
 
 TODO: automatically resize tilemap as needed by growing/shrinking the arrays
-TODO: painting tiles with pencil-like tool (make this generic to allow for other tools?)
--> tilemap[hovered_tile.x, hovered_tile.y] = currentTile
+TODO: new tilemap menu button implementation
 
 TODO this stream
-* paint tiles
 * resize tilemap to add columns/rows
 
 internal representation:
@@ -32,7 +30,7 @@ draw_tiles(gfx::Renderer* renderer, tile::TileMap* tilemap)
     glm::vec3 tileScale = { halfTileSize, halfTileSize, 1.f };
     for (size_t row = 0; row < tilemap->rows(); ++row) {
         for (size_t column = 0; column < tilemap->columns(); ++column) {
-            auto tile = tilemap->get(column, row);
+            auto tile = (*tilemap)(column, row);
             auto tileset = tilemap->tileset(tile);
             auto uv = tilemap->uv(tile);
             auto model = glm::translate(glm::mat4(1), { halfTileSize + column * 32.f, halfTileSize + row * 32.f, 0.f });
@@ -46,7 +44,6 @@ draw_tiles(gfx::Renderer* renderer, tile::TileMap* tilemap)
 void
 draw_grid(gfx::Renderer* renderer, glm::vec<2, size_t> mapSize, size_t tileSize, glm::vec2 mouse)
 {
-
     auto width = mapSize.x * tileSize;
     auto height = mapSize.y * tileSize;
 
@@ -86,6 +83,7 @@ main(void)
     // TODO: remove this
     auto& state = context.state();
     state.tileMap = tile::TileMap::Load("SAMPLE_MAP.json");
+    state.tileMapSaved = true;
     state.tileMapPath = "SAMPLE_MAP.json";
 
     // TODO: maybe refactor this a bit
@@ -149,12 +147,28 @@ main(void)
         window.pollInput();
         context.poll();
 
+        glm::dvec2 mouse;
+        glfwGetCursorPos(window.handle(), &mouse.x, &mouse.y);
+        auto mouseInWorld = camera.world(mouse);
+
         auto* tilemap = context.state().tileMap.get();
         if (tilemap != nullptr) {
-            glm::dvec2 mouse;
-            glfwGetCursorPos(window.handle(), &mouse.x, &mouse.y);
+            glm::vec2 mapSize = { tilemap->columns(), tilemap->rows() };
+            if (glfwGetMouseButton(window.handle(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
+                auto tileSize = tilemap->tileSize();
+                auto col = std::floorf(mouseInWorld.x / tileSize);
+                auto row = std::floorf(mouseInWorld.y / tileSize);
+                if (col >= 0 && col < mapSize.x && row >= 0 && row < mapSize.y) {
+                    auto& tile = (*tilemap)(col, row);
+                    if (tile != state.currentTile) {
+                        tile = state.currentTile;
+                        state.tileMapSaved = false;
+                    }
+                }
+            }
+
             draw_tiles(&renderer, tilemap);
-            draw_grid(&renderer, { tilemap->columns(), tilemap->rows() }, tilemap->tileSize(), camera.world(mouse));
+            draw_grid(&renderer, mapSize, tilemap->tileSize(), mouseInWorld);
         }
 
         renderer.render(camera);
