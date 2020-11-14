@@ -13,6 +13,7 @@ checkShader(GLuint handle)
         char infoLog[512];
         glGetShaderInfoLog(handle, 512, NULL, infoLog);
         spdlog::error("Shader compilation failed:\n{}", infoLog);
+        abort();
     };
 }
 
@@ -25,6 +26,7 @@ checkProgram(GLuint handle)
         char infoLog[512];
         glGetProgramInfoLog(handle, 512, NULL, infoLog);
         spdlog::error("Program linking failed:\n{}", infoLog);
+        abort();
     };
 }
 
@@ -84,6 +86,21 @@ Shader::Shader(const std::string& vsrc, const std::string& fsrc)
 Shader::~Shader()
 {
     glDeleteProgram(this->handle_);
+}
+
+Shader::Shader(Shader&& other)
+  : handle_(std::exchange(other.handle_, 0))
+  , uniforms_(std::move(other.uniforms_))
+{}
+
+Shader&
+Shader::operator=(Shader&& other)
+{
+    if (this != &other) {
+        this->handle_ = std::exchange(other.handle_, 0);
+        this->uniforms_ = std::move(other.uniforms_);
+    }
+    return *this;
 }
 
 void

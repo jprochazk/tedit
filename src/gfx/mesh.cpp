@@ -28,9 +28,9 @@ gl_sizeof(GLenum type)
 Mesh::Mesh(const std::vector<float>& vertices,
     const std::vector<uint32_t>& indices,
     const std::vector<Attribute>& attributes)
-  : vbo_()
-  , ebo_()
-  , vao_()
+  : vbo_(0)
+  , ebo_(0)
+  , vao_(0)
   , count_(indices.size())
 {
     glGenBuffers(1, &this->vbo_);
@@ -70,6 +70,25 @@ Mesh::~Mesh()
     glDeleteBuffers(1, &this->vbo_);
     glDeleteBuffers(1, &this->ebo_);
     glDeleteVertexArrays(1, &this->vao_);
+}
+
+Mesh::Mesh(Mesh&& other)
+  : vbo_(std::exchange(other.vbo_, 0))
+  , ebo_(std::exchange(other.ebo_, 0))
+  , vao_(std::exchange(other.vao_, 0))
+  , count_(std::exchange(other.count_, 0))
+{}
+
+Mesh&
+Mesh::operator=(Mesh&& other)
+{
+    if (this != &other) {
+        this->vbo_ = std::exchange(other.vbo_, 0);
+        this->ebo_ = std::exchange(other.ebo_, 0);
+        this->vao_ = std::exchange(other.vao_, 0);
+        this->count_ = std::exchange(other.count_, 0);
+    }
+    return *this;
 }
 
 void

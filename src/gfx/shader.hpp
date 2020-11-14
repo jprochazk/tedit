@@ -20,6 +20,10 @@ class Shader final
 public:
     Shader(const std::string& vsrc, const std::string& fsrc);
     ~Shader();
+    Shader(const Shader& other) = delete;
+    Shader& operator=(const Shader& other) = delete;
+    Shader(Shader&& other);
+    Shader& operator=(Shader&& other);
 
     void attach() const;
     void detach() const;

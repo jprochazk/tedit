@@ -47,6 +47,26 @@ Image::~Image()
     glDeleteTextures(1, &this->handle_);
 }
 
+Image::Image(Image&& other)
+  : handle_(std::exchange(other.handle_, 0))
+  , width_(std::exchange(other.width_, 0))
+  , height_(std::exchange(other.height_, 0))
+  , channels_(std::exchange(other.channels_, 0))
+  , type_(other.type_)
+{}
+Image&
+Image::operator=(Image&& other)
+{
+    if (this != &other) {
+        this->handle_ = std::exchange(other.handle_, 0);
+        this->width_ = std::exchange(other.width_, 0);
+        this->height_ = std::exchange(other.height_, 0);
+        this->channels_ = std::exchange(other.channels_, 0);
+        this->type_ = other.type_;
+    }
+    return *this;
+}
+
 void
 Image::attach(GLenum slot) const
 {

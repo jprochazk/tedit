@@ -6,7 +6,6 @@
 
 /*
 
-TODO: put all in src/gfx under "gfx" namespace.
 TODO: line rendering
 
 TODO: automatically resize tilemap as needed by growing/shrinking the arrays
@@ -108,9 +107,18 @@ main(void)
                 }
                 continue;
             }
-        }
-        renderer.render(camera);
 
+            auto left = (scol - 0.5) * 32.f;
+            auto right = (scol + tilemap->columns() - 0.5) * 32.f;
+            auto top = (srow - 0.5) * 32.f;
+            auto bottom = (srow + tilemap->rows() - 0.5) * 32.f;
+            renderer.submit({ left - 0.5f, bottom }, { right + 0.5f, bottom }, 1.f);
+            renderer.submit({ right, bottom + 0.5f }, { right, top - 0.5f }, 1.f);
+            renderer.submit({ right + 0.5f, top }, { left - 0.5f, top }, 1.f);
+            renderer.submit({ left, top - 0.5f }, { left, bottom + 0.5f }, 1.f);
+        }
+
+        renderer.render(camera);
         context.render();
 
         /* Swap front and back buffers */

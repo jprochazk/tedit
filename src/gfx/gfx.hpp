@@ -7,6 +7,7 @@
 #include "gl.h"
 #include "window.hpp"
 #include "image.hpp"
+#include "batch.hpp"
 #include "mesh.hpp"
 #include "shader.hpp"
 #include "camera.hpp"

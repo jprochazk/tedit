@@ -7,6 +7,25 @@
 // window instance for event listeners
 static Window* window = nullptr;
 
+static void GLAPIENTRY
+global_GLMessageCallback(GLenum source,
+    GLenum type,
+    GLuint id,
+    GLenum severity,
+    GLsizei length,
+    const GLchar* message,
+    const void* userParam)
+{
+    fprintf(stderr,
+        "GL CALLBACK: %s type = 0x%x, severity = 0x%x, message = %s\n",
+        (type == GL_DEBUG_TYPE_ERROR ? "** GL ERROR **" : ""),
+        type,
+        severity,
+        message);
+    system("pause");
+    exit(0);
+}
+
 static void
 global_HandleGLFWMouseMove(GLFWwindow*, double xpos, double ypos)
 {
@@ -60,6 +79,7 @@ Window::Window(const std::string& title, int width, int height)
     // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GLFW_TRUE)
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+    glfwWindowHint(GLFW_SAMPLES, 4);
 
     this->handle_ = glfwCreateWindow(this->width_, this->height_, this->title_.c_str(), NULL, NULL);
     assert(this->handle_);
@@ -74,6 +94,8 @@ Window::Window(const std::string& title, int width, int height)
     glfwSwapInterval(1); // Enable vsync
 
     assert(gladLoadGLLoader((GLADloadproc)glfwGetProcAddress));
+
+    glDebugMessageCallback(global_GLMessageCallback, NULL);
 
     assert(window == nullptr);
     window = this;

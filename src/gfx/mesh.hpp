@@ -20,6 +20,10 @@ public:
         const std::vector<uint32_t>& indices,
         const std::vector<Attribute>& attributes);
     ~Mesh();
+    Mesh(const Mesh& other) = delete;
+    Mesh& operator=(const Mesh& other) = delete;
+    Mesh(Mesh&& other);
+    Mesh& operator=(Mesh&& other);
 
     void attach() const;
     void draw(GLenum mode) const;
