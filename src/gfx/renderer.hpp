@@ -6,45 +6,57 @@
 #include "gfx/shader.hpp"
 #include "gfx/mesh.hpp"
 
+namespace gfx {
+
 class Camera;
 class Image;
-
-struct Command
-{
-    const Image* image;
-    glm::vec4 uv;
-    glm::mat4 model;
-}; // struct Command
 
 class Renderer final
 {
 public:
+    struct ImageCommand
+    {
+        const Image* image;
+        glm::vec4 uv;
+        glm::mat4 model;
+    }; // struct ImageCommand
+
+    struct LineCommand
+    {
+        glm::vec2 start;
+        glm::vec2 end;
+        glm::vec4 color;
+        float thickness;
+    }; // struct LineCommand
+
     Renderer();
     ~Renderer() = default;
 
     // TODO: this should be camera, not window
     /**
-     * Begin rendering a frame.
-     *
-     * Sets necessary state and clear the framebuffer.
+     * Submits an Image draw command.
      */
-    void begin(Camera& window);
+    void submit(const Image* image, glm::vec4 uv = { 0.f, 0.f, 1.f, 1.f }, glm::mat4 model = glm::mat4(1));
     /**
-     * Submits a draw command.
+     * Submits a Line draw command.
      */
-    void draw(const Image* image, glm::vec4 uv = glm::vec4(0.f, 0.f, 1.f, 1.f), glm::mat4 model = glm::mat4(1));
+    void submit(glm::vec2 start, glm::vec2 end, glm::vec4 color = { 1.f, 1.f, 1.f, 1.f }, float thickness = 1.0f);
     /**
-     * Flush draw commands to the GPU.
+     * Render primitives from POV of `camera`.
      */
-    void flush();
+    void render(Camera& camera);
 
 private:
     // textured quad shader
     Shader shader_;
     // quad mesh
     Mesh mesh_;
-    // draw command buffer
-    std::vector<Command> commands_;
+    // draw command buffers
+    struct CommandBuffers
+    {
+        std::vector<ImageCommand> image;
+        std::vector<LineCommand> line;
+    } commands_;
 
     // uniforms
     Uniform uProj_;
@@ -53,5 +65,7 @@ private:
     Uniform uUV_;
     Uniform uTexture_;
 }; // class Renderer
+
+} // namespace gfx
 
 #endif // TEDIT_RENDERER_
