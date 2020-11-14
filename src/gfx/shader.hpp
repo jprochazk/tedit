@@ -4,6 +4,8 @@
 
 #include "gfx/gl.h"
 
+namespace gfx {
+
 struct Uniform
 {
     std::string name;
@@ -30,5 +32,7 @@ private:
     GLuint handle_;
     std::unordered_map<std::string, Uniform> uniforms_;
 }; // class Shader
+
+} // namespace gfx
 
 #endif // TEDIT_SHADER_

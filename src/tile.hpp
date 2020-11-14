@@ -63,13 +63,13 @@ public:
     TileSet(const std::string& source);
 
     std::string source() const;
-    const Image& atlas() const;
+    const gfx::Image& atlas() const;
 
     static TileSet* Load(const std::string& path);
 
 private:
     std::string source_;
-    Image atlas_;
+    gfx::Image atlas_;
 }; // class TileSet
 
 class TileMap

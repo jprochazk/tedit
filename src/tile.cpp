@@ -71,7 +71,7 @@ TileSet::source() const
 {
     return this->source_;
 }
-const Image&
+const gfx::Image&
 TileSet::atlas() const
 {
     return this->atlas_;

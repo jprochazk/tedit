@@ -3,6 +3,8 @@
 #include "camera.hpp"
 #include "window.hpp"
 
+namespace gfx {
+
 Camera::Camera(Window* window)
   : window_(window)
   , proj_()
@@ -86,3 +88,5 @@ Camera::zoom() const
 {
     return this->zoom_;
 }
+
+} // namespace gfx

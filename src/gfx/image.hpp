@@ -5,6 +5,8 @@
 #include "gfx/gl.h"
 #include <stb_image.h>
 
+namespace gfx {
+
 struct ImageOptions
 {
     GLenum wrap_s;
@@ -39,5 +41,7 @@ private:
     int channels_;
     GLenum type_;
 }; // class Image
+
+} // namespace gfx
 
 #endif // TEDIT_IMAGE_

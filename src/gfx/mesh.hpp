@@ -4,6 +4,8 @@
 
 #include "gfx/gl.h"
 
+namespace gfx {
+
 struct Attribute
 {
     GLuint location;
@@ -15,8 +17,8 @@ class Mesh final
 {
 public:
     Mesh(const std::vector<float>& vertices,
-         const std::vector<uint32_t>& indices,
-         const std::vector<Attribute>& attributes);
+        const std::vector<uint32_t>& indices,
+        const std::vector<Attribute>& attributes);
     ~Mesh();
 
     void attach() const;
@@ -26,5 +28,7 @@ private:
     GLuint vbo_, ebo_, vao_;
     int count_;
 }; // class Mesh
+
+} // namespace gfx
 
 #endif // TEDIT_MESH_

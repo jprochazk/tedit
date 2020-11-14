@@ -2,6 +2,8 @@
 #include "pch.h"
 #include "mesh.hpp"
 
+namespace gfx {
+
 size_t
 gl_sizeof(GLenum type)
 {
@@ -24,8 +26,8 @@ gl_sizeof(GLenum type)
 }
 
 Mesh::Mesh(const std::vector<float>& vertices,
-           const std::vector<uint32_t>& indices,
-           const std::vector<Attribute>& attributes)
+    const std::vector<uint32_t>& indices,
+    const std::vector<Attribute>& attributes)
   : vbo_()
   , ebo_()
   , vao_()
@@ -81,3 +83,5 @@ Mesh::draw(GLenum mode) const
 {
     glDrawElements(mode, this->count_, GL_UNSIGNED_INT, NULL);
 }
+
+} // namespace gfx

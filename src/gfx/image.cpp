@@ -2,6 +2,8 @@
 #include "pch.h"
 #include "image.hpp"
 
+namespace gfx {
+
 Image::Image(const std::string& uri, GLenum type, ImageOptions options)
   : handle_()
   , width_()
@@ -81,3 +83,5 @@ Image::type() const
 {
     return this->type_;
 }
+
+} // namespace gfx

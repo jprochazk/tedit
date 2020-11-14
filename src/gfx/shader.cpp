@@ -2,6 +2,8 @@
 #include "pch.h"
 #include "shader.hpp"
 
+namespace gfx {
+
 void
 checkShader(GLuint handle)
 {
@@ -113,3 +115,5 @@ Shader::uniforms() const
 {
     return this->uniforms_;
 }
+
+} // namespace gfx

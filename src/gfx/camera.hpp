@@ -5,6 +5,8 @@
 
 class Window;
 
+namespace gfx {
+
 class Camera
 {
 public:
@@ -33,5 +35,7 @@ private:
     glm::vec4 viewport_;
     float zoom_;
 }; // class Camera
+
+} // namespace gfx
 
 #endif // TEDIT_CAMERA_
