@@ -8,7 +8,8 @@
 namespace gfx {
 
 // clang-format off
-const char* QUAD_SHADER_VSRC = 
+// TEXTURED QUAD ->
+const char* QUAD_TEX_SHADER_VSRC = 
 "#version 330 core\n"
 "layout (location = 0) in vec2 aPos;\n"
 "layout (location = 1) in vec2 aUV;\n"
@@ -21,7 +22,7 @@ const char* QUAD_SHADER_VSRC =
 "    vUV = aUV * uUV.zw + uUV.xy;\n"
 "    gl_Position = uProj * uView * uModel * vec4(aPos, 0.0, 1.0);\n"
 "}";
-const char* QUAD_SHADER_FSRC = 
+const char* QUAD_TEX_SHADER_FSRC = 
 "#version 330 core\n"
 "out vec4 FragColor;\n"
 "in vec2 vUV;\n"
@@ -29,21 +30,54 @@ const char* QUAD_SHADER_FSRC =
 "void main() {\n"
 "    FragColor = texture(uTexture, vUV);\n"
 "}";
-std::vector<float> quad_vertices = { 
+std::vector<float> quad_vertices_tex = { 
     +1.0f, +1.0f, 1.0f, 1.0f, 
     +1.0f, -1.0f, 1.0f, 0.0f,
     -1.0f, -1.0f, 0.0f, 0.0f, 
     -1.0f, +1.0f, 0.0f, 1.0f 
 };
-std::vector<uint32_t> quad_indices = { 
+std::vector<uint32_t> quad_indices_tex = { 
     0, 1, 3, 
     1, 2, 3 
 };
-std::vector<Attribute> quad_attributes = { 
+std::vector<Attribute> quad_attributes_tex = { 
     { 0, 2, GL_FLOAT }, 
     { 1, 2, GL_FLOAT } 
 };
+// <- TEXTURED QUAD
+// COLORED QUAD ->
+const char* QUAD_COL_SHADER_VSRC = 
+"#version 330 core\n"
+"layout (location = 0) in vec2 aPos;\n"
+"uniform mat4 uProj;\n"
+"uniform mat4 uView;\n"
+"uniform mat4 uModel;\n"
+"void main() {\n"
+"    gl_Position = uProj * uView * uModel * vec4(aPos, 0.0, 1.0);\n"
+"}";
+const char* QUAD_COL_SHADER_FSRC = 
+"#version 330 core\n"
+"out vec4 FragColor;\n"
+"uniform vec4 uColor;\n"
+"void main() {\n"
+"    FragColor = uColor;\n"
+"}";
+std::vector<float> quad_vertices_col = { 
+    +1.0f, +1.0f,
+    +1.0f, -1.0f,
+    -1.0f, -1.0f,
+    -1.0f, +1.0f,
+};
+std::vector<uint32_t> quad_indices_col = { 
+    0, 1, 3, 
+    1, 2, 3 
+};
+std::vector<Attribute> quad_attributes_col = {
+    { 0, 2, GL_FLOAT }
+};
+// <- COLORED QUAD
 
+// LINE ->
 const char* LINE_SHADER_VSRC =
 "#version 330 core\n"
 "uniform mat4 uProj;\n"
@@ -59,21 +93,32 @@ const char* LINE_SHADER_FSRC =
 "void main() {\n"
 "    oFragColor = uColor;\n"
 "}";
+// <- LINE
 // clang-format on
 
 Renderer::Renderer()
-  : shaders_({ std::move(Shader(QUAD_SHADER_VSRC, QUAD_SHADER_FSRC)), Shader(LINE_SHADER_VSRC, LINE_SHADER_FSRC) })
-  , meshes_({ std::move(Mesh(quad_vertices, quad_indices, quad_attributes)), { std::move(Batch(2 << 15)), 0 } })
+  : shaders_({ Shader(QUAD_TEX_SHADER_VSRC, QUAD_TEX_SHADER_FSRC),
+        Shader(QUAD_COL_SHADER_VSRC, QUAD_COL_SHADER_FSRC),
+        Shader(LINE_SHADER_VSRC, LINE_SHADER_FSRC) })
+  , meshes_({ Mesh(quad_vertices_tex, quad_indices_tex, quad_attributes_tex),
+        Mesh(quad_vertices_col, quad_indices_col, quad_attributes_col),
+        { Batch(2 << 15), 0 } })
   , commands_()
   , uniforms_()
   , lineColor_(0, 0, 0, 1)
 {
-    // gather quad shader uniforms
-    this->uniforms_.quad.uProj = this->shaders_.quad.uniform("uProj");
-    this->uniforms_.quad.uView = this->shaders_.quad.uniform("uView");
-    this->uniforms_.quad.uModel = this->shaders_.quad.uniform("uModel");
-    this->uniforms_.quad.uUV = this->shaders_.quad.uniform("uUV");
-    this->uniforms_.quad.uTexture = this->shaders_.quad.uniform("uTexture");
+    // textured quad shader uniforms
+    this->uniforms_.quad_tex.uProj = this->shaders_.quad_tex.uniform("uProj");
+    this->uniforms_.quad_tex.uView = this->shaders_.quad_tex.uniform("uView");
+    this->uniforms_.quad_tex.uModel = this->shaders_.quad_tex.uniform("uModel");
+    this->uniforms_.quad_tex.uUV = this->shaders_.quad_tex.uniform("uUV");
+    this->uniforms_.quad_tex.uTexture = this->shaders_.quad_tex.uniform("uTexture");
+
+    // color quad shader uniforms
+    this->uniforms_.quad_col.uProj = this->shaders_.quad_col.uniform("uProj");
+    this->uniforms_.quad_col.uView = this->shaders_.quad_col.uniform("uView");
+    this->uniforms_.quad_col.uModel = this->shaders_.quad_col.uniform("uModel");
+    this->uniforms_.quad_col.uColor = this->shaders_.quad_col.uniform("uColor");
 
     // gather line shader uniforms
     this->uniforms_.line.uProj = this->shaders_.line.uniform("uProj");
@@ -91,7 +136,13 @@ Renderer::Renderer()
 void
 Renderer::submit(const Image* image, glm::vec4 uv, glm::mat4 model)
 {
-    this->commands_.image.push_back(ImageCommand{ image, uv, model });
+    this->commands_.quad_tex.push_back({ image, uv, model });
+}
+
+void
+Renderer::submit(glm::vec4 color, glm::mat4 model)
+{
+    this->commands_.quad_col.push_back({ color, model });
 }
 
 void
@@ -143,24 +194,38 @@ Renderer::render(Camera& camera)
 
     auto& projection = camera.projection();
     auto& view = camera.view();
-    // render images
+    // TODO: maybe render in one go, so they stay in-order?
+    // render textured quads
     {
-        this->shaders_.quad.attach();
-        glUniformMatrix4fv(this->uniforms_.quad.uProj.location, 1, false, glm::value_ptr(projection));
-        glUniformMatrix4fv(this->uniforms_.quad.uView.location, 1, false, glm::value_ptr(view));
-        this->meshes_.quad.attach();
+        this->shaders_.quad_tex.attach();
+        glUniformMatrix4fv(this->uniforms_.quad_tex.uProj.location, 1, false, glm::value_ptr(projection));
+        glUniformMatrix4fv(this->uniforms_.quad_tex.uView.location, 1, false, glm::value_ptr(view));
+        this->meshes_.quad_tex.attach();
 
         GLuint lastTexture = static_cast<GLuint>(-1);
-        for (const auto& command : this->commands_.image) {
+        for (const auto& command : this->commands_.quad_tex) {
             if (GLuint texture = command.image->handle(); texture != lastTexture) {
                 lastTexture = texture;
                 command.image->attach(GL_TEXTURE0);
-                glUniform1i(this->uniforms_.quad.uTexture.location, 0);
+                glUniform1i(this->uniforms_.quad_tex.uTexture.location, 0);
             }
-            glUniform4fv(this->uniforms_.quad.uUV.location, 1, glm::value_ptr(command.uv));
-            glUniformMatrix4fv(this->uniforms_.quad.uModel.location, 1, false, glm::value_ptr(command.model));
+            glUniform4fv(this->uniforms_.quad_tex.uUV.location, 1, glm::value_ptr(command.uv));
+            glUniformMatrix4fv(this->uniforms_.quad_tex.uModel.location, 1, false, glm::value_ptr(command.model));
 
-            this->meshes_.quad.draw(GL_TRIANGLES);
+            this->meshes_.quad_tex.draw(GL_TRIANGLES);
+        }
+    }
+    // render colored quads
+    {
+        this->shaders_.quad_col.attach();
+        glUniformMatrix4fv(this->uniforms_.quad_col.uProj.location, 1, false, glm::value_ptr(projection));
+        glUniformMatrix4fv(this->uniforms_.quad_col.uView.location, 1, false, glm::value_ptr(view));
+        this->meshes_.quad_col.attach();
+
+        for (const auto& command : this->commands_.quad_col) {
+            glUniform4fv(this->uniforms_.quad_col.uColor.location, 1, glm::value_ptr(command.color));
+            glUniformMatrix4fv(this->uniforms_.quad_col.uModel.location, 1, false, glm::value_ptr(command.model));
+            this->meshes_.quad_col.draw(GL_TRIANGLES);
         }
     }
 
@@ -176,7 +241,9 @@ Renderer::render(Camera& camera)
         glDrawArrays(GL_TRIANGLES, 0, this->commands_.lines * 6);
     }
 
-    this->commands_.image.clear();
+    this->commands_.quad_tex.clear();
+    this->commands_.quad_col.clear();
+    this->commands_.lines = 0;
 }
 
 void

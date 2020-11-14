@@ -6,13 +6,72 @@
 
 /*
 
-TODO: line rendering
-
 TODO: automatically resize tilemap as needed by growing/shrinking the arrays
 TODO: painting tiles with pencil-like tool (make this generic to allow for other tools?)
 -> tilemap[hovered_tile.x, hovered_tile.y] = currentTile
 
+TODO this stream
+* paint tiles
+* resize tilemap to add columns/rows
+
+internal representation:
+Tile = uint32
+Layer = Tile[1024 * 1024]
+TileMap = Layer[16]
+
+
+
 */
+
+void
+draw_tiles(gfx::Renderer* renderer, tile::TileMap* tilemap)
+{
+    // TODO: center camera on tilemap instead of centering tilemap on camera.
+    float tileSize = (float)tilemap->tileSize();
+    float halfTileSize = tileSize / 2.f;
+    glm::vec3 tileScale = { halfTileSize, halfTileSize, 1.f };
+    for (size_t row = 0; row < tilemap->rows(); ++row) {
+        for (size_t column = 0; column < tilemap->columns(); ++column) {
+            auto tile = tilemap->get(column, row);
+            auto tileset = tilemap->tileset(tile);
+            auto uv = tilemap->uv(tile);
+            auto model = glm::translate(glm::mat4(1), { halfTileSize + column * 32.f, halfTileSize + row * 32.f, 0.f });
+            model = glm::scale(model, tileScale);
+            renderer->submit(&tileset->atlas(), uv, model);
+        }
+        continue;
+    }
+}
+
+void
+draw_grid(gfx::Renderer* renderer, glm::vec<2, size_t> mapSize, size_t tileSize, glm::vec2 mouse)
+{
+
+    auto width = mapSize.x * tileSize;
+    auto height = mapSize.y * tileSize;
+
+    // highlight
+    auto mcol = std::floorf(mouse.x / tileSize);
+    auto mrow = std::floorf(mouse.y / tileSize);
+
+    // mouse is in tilemap bounds
+    if (mcol >= 0 && mcol < mapSize.x && mrow >= 0 && mrow < mapSize.y) {
+        auto halfTileSize = (float)tileSize / 2.f;
+        glm::vec3 tileScale = { halfTileSize, halfTileSize, 1.f };
+        auto model = glm::translate(glm::mat4(1), { halfTileSize + mcol * 32.f, halfTileSize + mrow * 32.f, 0.f });
+        model = glm::scale(model, tileScale);
+        renderer->submit({ 120.f / 255.f, 120.f / 255.f, 120.f / 255.f, 100.f / 255.f }, model);
+    }
+
+    // horizontal lines
+    for (size_t row = 0; row < mapSize.y + 1; ++row) {
+        renderer->submit({ 0.0f, row * tileSize }, { width, row * tileSize }, 1.f);
+    }
+    // vertical lines
+    for (size_t column = 0; column < mapSize.x + 1; ++column) {
+        renderer->submit({ column * tileSize, 0.0f }, { column * tileSize, height }, 1.f);
+    }
+}
 
 int
 main(void)
@@ -92,30 +151,10 @@ main(void)
 
         auto* tilemap = context.state().tileMap.get();
         if (tilemap != nullptr) {
-            // starting row/col so that the tilemap is centered by default
-            auto srow = 0.5 + ((float)tilemap->rows() / -2.f);
-            auto scol = 0.5 + ((float)tilemap->columns() / -2.f);
-            glm::vec3 tileScale = { (float)tilemap->tileSize() / 2.f, (float)tilemap->tileSize() / 2.f, 1.f };
-            for (size_t row = 0; row < tilemap->rows(); ++row) {
-                for (size_t column = 0; column < tilemap->columns(); ++column) {
-                    auto tile = tilemap->get(column, row);
-                    auto tileset = tilemap->tileset(tile);
-                    auto uv = tilemap->uv(tile);
-                    auto model = glm::translate(glm::mat4(1), { (scol + column) * 32.f, (srow + row) * 32.f, 0.f });
-                    model = glm::scale(model, tileScale);
-                    renderer.submit(&tileset->atlas(), uv, model);
-                }
-                continue;
-            }
-
-            auto left = (scol - 0.5) * 32.f;
-            auto right = (scol + tilemap->columns() - 0.5) * 32.f;
-            auto top = (srow - 0.5) * 32.f;
-            auto bottom = (srow + tilemap->rows() - 0.5) * 32.f;
-            renderer.submit({ left - 0.5f, bottom }, { right + 0.5f, bottom }, 1.f);
-            renderer.submit({ right, bottom + 0.5f }, { right, top - 0.5f }, 1.f);
-            renderer.submit({ right + 0.5f, top }, { left - 0.5f, top }, 1.f);
-            renderer.submit({ left, top - 0.5f }, { left, bottom + 0.5f }, 1.f);
+            glm::dvec2 mouse;
+            glfwGetCursorPos(window.handle(), &mouse.x, &mouse.y);
+            draw_tiles(&renderer, tilemap);
+            draw_grid(&renderer, { tilemap->columns(), tilemap->rows() }, tilemap->tileSize(), camera.world(mouse));
         }
 
         renderer.render(camera);

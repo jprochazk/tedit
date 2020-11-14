@@ -15,23 +15,33 @@ class Image;
 class Renderer final
 {
 public:
-    struct ImageCommand
+    struct TexturedQuadCommand
     {
         const Image* image;
         glm::vec4 uv;
         glm::mat4 model;
     }; // struct ImageCommand
 
+    struct ColoredQuadCommand
+    {
+        glm::vec4 color;
+        glm::mat4 model;
+    }; // struct ColoredQuadCommand
+
     Renderer();
     ~Renderer() = default;
 
     // TODO: this should be camera, not window
     /**
-     * Submits an Image draw command.
+     * Submits a textured quad draw command.
      */
-    void submit(const Image* image, glm::vec4 uv = { 0.f, 0.f, 1.f, 1.f }, glm::mat4 model = glm::mat4(1));
+    void submit(const Image* image, glm::vec4 uv = { 0.0f, 0.0f, 1.0f, 1.0f }, glm::mat4 model = glm::mat4(1));
     /**
-     * Submits a Line draw command. Coordinates are in world space.
+     * Submits a colored quad draw command.
+     */
+    void submit(glm::vec4 color, glm::mat4 model = glm::mat4(1));
+    /**
+     * Submits a line draw command. Start/end coordinates have to be in world space.
      */
     void submit(glm::vec2 start, glm::vec2 end, float thickness = 1.0f);
     /**
@@ -44,13 +54,15 @@ public:
 private:
     struct Shaders
     {
-        Shader quad;
+        Shader quad_tex;
+        Shader quad_col;
         Shader line;
     } shaders_;
 
     struct Meshes
     {
-        Mesh quad;
+        Mesh quad_tex;
+        Mesh quad_col;
         struct
         {
             Batch batch;
@@ -61,7 +73,8 @@ private:
     // draw command buffers
     struct CommandBuffers
     {
-        std::vector<ImageCommand> image;
+        std::vector<TexturedQuadCommand> quad_tex;
+        std::vector<ColoredQuadCommand> quad_col;
         size_t lines;
     } commands_;
 
@@ -75,7 +88,14 @@ private:
             Uniform uModel;
             Uniform uUV;
             Uniform uTexture;
-        } quad;
+        } quad_tex;
+        struct
+        {
+            Uniform uProj;
+            Uniform uView;
+            Uniform uModel;
+            Uniform uColor;
+        } quad_col;
         struct
         {
             Uniform uProj;

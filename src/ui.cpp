@@ -298,78 +298,19 @@ Save_TileMap(Context* context)
  * Render the main UI window.
  */
 void
-Render_EditorMainWindow(Context* context, ImGuiIO& io)
+Render_TilesetDisplayWindow(Context* context, ImGuiIO& io)
 {
     // TODO(?): big function, may benefit from being split up.
 
     ImGui::SetNextWindowSize(ImVec2(320, 380));
-    auto flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize |
-                 ImGuiWindowFlags_NoScrollWithMouse | ImGuiWindowFlags_NoScrollbar;
+    auto flags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoScrollWithMouse |
+                 ImGuiWindowFlags_NoScrollbar;
     if (!ImGui::Begin("Tile Set", NULL, flags))
         return ImGui::End();
 
     auto& state = context->state();
     auto* window = context->window();
     auto& style = ImGui::GetStyle();
-
-    // Editor UI menu
-    if (ImGui::BeginMenuBar()) {
-
-        // New Tile Map
-        // Menu->New or CTRL+N
-        // Popup must not be open
-        static bool new_tmp_open = false;
-        if ((ImGui::MenuItem("New", "CTRL+N") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_N)) &&
-            !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-            // if the current tile map has unsaved changes
-            if (!state.tileMapSaved) {
-                context->confirm("Save unsaved progress?", [&](bool choice) {
-                    if (choice) {
-                        Save_TileMap(context);
-                    }
-                    new_tmp_open = true;
-                });
-            } else {
-                // otherwise just open the new tilemap popup
-                new_tmp_open = true;
-            }
-        }
-        Render_NewTileMapPopup(context, &new_tmp_open);
-
-        // Save Tile Map
-        // Menu->Save or CTRL+S
-        if (ImGui::MenuItem("Save", "CTRL+S") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_S)) {
-            // only saves if we haven't already saved.
-            if (!state.tileMapSaved) {
-                // Only opens native file dialog if we don't have a stored save path
-                Save_TileMap(context);
-            }
-        }
-
-        // Save Tile Map As
-        // Menu->Save As, no shortcut
-        if ((ImGui::MenuItem("Save As")) && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-            // Always opens native save file dialog
-            Dialog_SaveTileMap(context);
-        }
-
-        // Open Tile Map
-        // Menu->Open or CTRL+O
-        if ((ImGui::MenuItem("Open", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) &&
-            !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-            if (!state.tileMapSaved) {
-                context->confirm("Save unsaved progress?", [&](bool choice) {
-                    if (choice) {
-                        Save_TileMap(context);
-                    }
-                    Dialog_LoadTileMap(context);
-                });
-            } else {
-                Dialog_LoadTileMap(context);
-            }
-        }
-        ImGui::EndMenuBar();
-    }
 
     // Editor UI body
 
@@ -575,6 +516,72 @@ Render_EditorMainWindow(Context* context, ImGuiIO& io)
     ImGui::End();
 }
 
+void
+Render_EditorMenuBar(Context* context)
+{
+    auto& state = context->state();
+    auto* window = context->window();
+    // Editor UI menu
+    // TODO: render this as a MainMenuBar instead of menu bar on this window
+    if (ImGui::BeginMainMenuBar()) {
+
+        // New Tile Map
+        // Menu->New or CTRL+N
+        // Popup must not be open
+        static bool new_tmp_open = false;
+        if ((ImGui::MenuItem("New", "CTRL+N") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_N)) &&
+            !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            // if the current tile map has unsaved changes
+            if (!state.tileMapSaved) {
+                context->confirm("Save unsaved progress?", [&](bool choice) {
+                    if (choice) {
+                        Save_TileMap(context);
+                    }
+                    new_tmp_open = true;
+                });
+            } else {
+                // otherwise just open the new tilemap popup
+                new_tmp_open = true;
+            }
+        }
+        Render_NewTileMapPopup(context, &new_tmp_open);
+
+        // Save Tile Map
+        // Menu->Save or CTRL+S
+        if (ImGui::MenuItem("Save", "CTRL+S") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_S)) {
+            // only saves if we haven't already saved.
+            if (!state.tileMapSaved) {
+                // Only opens native file dialog if we don't have a stored save path
+                Save_TileMap(context);
+            }
+        }
+
+        // Save Tile Map As
+        // Menu->Save As, no shortcut
+        if ((ImGui::MenuItem("Save As")) && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            // Always opens native save file dialog
+            Dialog_SaveTileMap(context);
+        }
+
+        // Open Tile Map
+        // Menu->Open or CTRL+O
+        if ((ImGui::MenuItem("Open", "CTRL+O") || window->shortcut(Window::Modifier::CONTROL, GLFW_KEY_O)) &&
+            !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            if (!state.tileMapSaved) {
+                context->confirm("Save unsaved progress?", [&](bool choice) {
+                    if (choice) {
+                        Save_TileMap(context);
+                    }
+                    Dialog_LoadTileMap(context);
+                });
+            } else {
+                Dialog_LoadTileMap(context);
+            }
+        }
+        ImGui::EndMainMenuBar();
+    }
+}
+
 Context::Context(Window* window)
   : window_(window)
   , state_()
@@ -598,7 +605,8 @@ Context::render()
     ImGui::NewFrame();
 
     ImGui::ShowDemoWindow();
-    Render_EditorMainWindow(this, io);
+    Render_EditorMenuBar(this);
+    Render_TilesetDisplayWindow(this, io);
 
     this->state_.hasMouseFocus = io.WantCaptureMouse;
     this->state_.hasKeyboardFocus = io.WantCaptureKeyboard;
