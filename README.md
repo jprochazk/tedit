@@ -21,10 +21,9 @@ It uses:
 
 #### Planned:
 * Tile map editing with MSPaint pencil-like tool
-* Automatic tileset resizing
+* Automatic tilemap resizing
 * Custom properties (key/value pairs) attached to tiles
 * Expand a 2D scene with 3D models (such as in the game [Realm of the Mad God](https://www.realmofthemadgod.com/))
-* Import from and export to (optionally) optimized JSON
 * TypeScript library to efficiently load the maps in HTML5 canvas based games
 
 ## Build & Run
