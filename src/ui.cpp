@@ -3,9 +3,8 @@
 #include "ui.hpp"
 #include "window.hpp"
 #include "tile.hpp"
-#define IMGUI_IMPL_OPENGL_LOADER_GL3W
-#include <imgui/backends/imgui_impl_glfw.h>
-#include <imgui/backends/imgui_impl_opengl3.h>
+#include "misc/imgui/backends/imgui_impl_glfw.h"
+#include "misc/imgui/backends/imgui_impl_opengl3.h"
 
 namespace ImGui {
 // Taken from imgui/misc/cpp/imgui_stdlib.cpp
@@ -430,8 +429,8 @@ Render_TilesetDisplayWindow(Context* context, ImGuiIO& io)
                     auto atlasW = (float)currentTileSetAtlas.width();
                     auto atlasH = (float)currentTileSetAtlas.height();
                     if (mx > 0 && mx < atlasW && my > 0 && my < atlasH) {
-                        auto tile_column = std::floorf(mx / tilemap->tileSize());
-                        auto tile_row = std::floorf(my / tilemap->tileSize());
+                        auto tile_column = std::floor(mx / tilemap->tileSize());
+                        auto tile_row = std::floor(my / tilemap->tileSize());
 
                         // draw tile highlight
                         auto hover_p0 = ImVec2(origin.x + (zoomed_tileSize * tile_column),
