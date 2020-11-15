@@ -93,9 +93,62 @@ TileMap::TileMap(const std::string& name, uint32_t columns, uint32_t rows, uint3
   , rows_(rows)
   , tileSize_(tileSize)
   , tiles_(columns * rows)
-  , tileSets_((size_t)2 ^ 6)
-  , tileSetPaths_((size_t)2 ^ 6)
+  , tileSets_((size_t)2 << 5)
+  , tileSetPaths_((size_t)2 << 5)
 {}
+
+void
+TileMap::grow(Direction direction, size_t count)
+{
+    /*
+    1. reallocate to fit
+    2. if needed, shift tiles
+    3. you're done??? that was easy
+    */
+
+    auto old_columns = this->columns_;
+    auto old_rows = this->rows_;
+    auto current_size = this->columns_ * this->rows_;
+
+    switch (direction) {
+        case Direction::Left: {
+            auto newSize = current_size + (this->rows_ * count);
+            std::vector<Tile> newTiles;
+            newTiles.resize(newSize, 0);
+
+            for (size_t i = 0; i < this->tiles_.size(); ++i) {
+                auto column = i / old_columns;
+                auto row = i % old_columns;
+                auto new_columns = old_columns + 1;
+                newTiles[column + row * new_columns] = this->tiles_[column + row * old_columns];
+            }
+
+            this->tiles_ = std::move(newTiles);
+            this->columns_ += 1;
+
+            break;
+        }
+        case Direction::Right: {
+
+            // don't need to shift tiles
+            break;
+        }
+        case Direction::Bottom: {
+
+            break;
+        }
+        case Direction::Top: {
+
+            break;
+        }
+    }
+}
+
+void
+TileMap::shrink(Direction direction, size_t count)
+{
+    std::cout << fmt::format("shrink in dir {} n {}", direction, count) << std::endl;
+}
 
 void
 TileMap::add(TileSet* tileset)
@@ -119,12 +172,12 @@ TileMap::remove(TileSet* tileset)
 const Tile&
 TileMap::operator()(uint32_t x, uint32_t y) const
 {
-    return this->tiles_[y][x];
+    return this->tiles_[x + y * columns_];
 }
 Tile&
 TileMap::operator()(uint32_t x, uint32_t y)
 {
-    return this->tiles_[y][x];
+    return this->tiles_[x + y * columns_];
 }
 glm::vec4
 TileMap::uv(Tile tile) const
@@ -140,6 +193,7 @@ TileMap::tileset(Tile tile) const
 TileSet*
 TileMap::tileset(Tile tile)
 {
+    // TODO: return nullptr if we don't have this tileset
     return this->tileSets_[TileSetId(tile)];
 }
 
@@ -226,7 +280,7 @@ TileMap::Load(const std::string& path)
         uint32_t rows = json["rows"];
         uint32_t tileSize = json["tileSize"];
         // TODO: layers
-        std::vector<std::vector<Tile>> tiles = json["tiles"];
+        std::vector<Tile> tiles = json["tiles"];
         std::vector<std::string> tileSetSources = json["tileSets"];
 
         std::vector<TileSet*> tileSets;

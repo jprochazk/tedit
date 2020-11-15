@@ -128,6 +128,11 @@ main(void)
         if (modifiers == 0 /* none */) {
             if (key == GLFW_KEY_ESCAPE)
                 return window.close();
+            if (key == GLFW_KEY_SPACE) {
+                if (action == GLFW_PRESS) {
+                    state.tileMap->grow(tile::TileMap::Direction::Left, 2);
+                }
+            }
         }
     });
     window.addScrollListener([&](double xoffset, double yoffset) {

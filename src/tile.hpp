@@ -75,8 +75,21 @@ private:
 class TileMap
 {
 public:
+    // static const size_t MAX_COLUMNS = 2048;
+    // static const size_t MAX_ROWS = 2048;
+
     TileMap();
     TileMap(const std::string& name, uint32_t columns, uint32_t rows, uint32_t tileSize);
+
+    enum class Direction
+    {
+        Left,
+        Right,
+        Top,
+        Bottom
+    };
+    void grow(Direction direction, size_t count);
+    void shrink(Direction direction, size_t count);
 
     void add(TileSet* tileset);
     void remove(TileSet* tileset);
@@ -103,7 +116,7 @@ private:
     uint32_t columns_;
     uint32_t rows_;
     uint32_t tileSize_;
-    std::vector<std::vector<Tile>> tiles_;
+    std::vector<Tile> tiles_;
     std::vector<TileSet*> tileSets_;
     std::vector<std::string> tileSetPaths_;
 }; // class TileMap
