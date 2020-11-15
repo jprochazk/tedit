@@ -6,7 +6,7 @@ add_requires("glfw >=3.3.2")
 -- or from conan (among others)
 add_requires("CONAN::glm/0.9.9.8", { alias = "glm" })
 add_requires("CONAN::stb/20200203", { alias = "stb" })
-add_requires("CONAN::spdlog/1.8.0", { alias = "spdlog", configs = {options = "spdlog:header_only=True"} }) 
+add_requires("CONAN::spdlog/1.8.0", { alias = "spdlog" }) --, configs = {options = "spdlog:header_only=True"} }) 
 add_requires("CONAN::nlohmann_json/3.9.1", { alias = "json" })
 add_requires("CONAN::concurrentqueue/1.0.2", { alias = "cqueue" });
 
