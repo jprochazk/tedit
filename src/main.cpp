@@ -132,7 +132,13 @@ main(void)
         if (action == GLFW_PRESS) {
             if (modifiers == 0 /* none */) {
                 if (key == GLFW_KEY_ESCAPE) {
-                    window.close();
+                    if (!state.tileMapSaved) {
+                        context.confirm("Save unsaved progress?", [&](bool choice) {
+                            if (choice) {
+                                context.forceSaveDialog([&] { window.close(); });
+                            }
+                        });
+                    }
                     return;
                 }
                 if (key == GLFW_KEY_L) {

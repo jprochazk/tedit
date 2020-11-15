@@ -50,6 +50,7 @@ public:
     const ContextState& state() const;
 
     void confirm(const char* text, std::function<void(bool)> callback);
+    void forceSaveDialog(std::function<void()> then);
 
     void microtask(Task&& task);
     void poll();

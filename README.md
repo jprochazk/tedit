@@ -16,12 +16,31 @@ It uses:
 * Tile map display
 * Tile map save/load to JSON
 * Selecting tiles from a tile atlas
+* Tile map editing with MSPaint pencil-like tool
+* Tile map resizing
+
+#### Controls:
+
+**Keys:**
+* Escape -> Exit the application
+* J -> add column to map's left side
+* L -> add column to map's right side
+* I -> add row to map's top side
+* K -> add row to map's bottom side
+* CTRL+N -> new tile map (not implemented yet)
+* CTRL+S -> save current tile map
+* CTRL+O -> open tile map
+**Mouse:**
+* Drag middle mouse button on tile map view -> pan
+* Drag middle mouse button on tile set view -> pan
+* Scroll wheel on tile map view -> zoom
+* Scroll wheel on tile set view -> zoom
+* Click on tile set view -> select hovered tile
+* Click on tile map view -> set hovered tile to tile selected in tile set view
 
 ![Showcase Image](SHOWCASE.png)
 
 #### Planned:
-* Tile map editing with MSPaint pencil-like tool
-* Automatic tilemap resizing
 * Custom properties (key/value pairs) attached to tiles
 * Expand a 2D scene with 3D models (such as in the game [Realm of the Mad God](https://www.realmofthemadgod.com/))
 * TypeScript library to efficiently load the maps in HTML5 canvas based games

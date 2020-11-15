@@ -278,22 +278,6 @@ Render_NewTileMapPopup(Context* context, bool* is_open)
 }
 
 /**
- * Helper for saving current TileMap.
- * Checks if the TileMap has a save path already, and saves there. Otherwise, opens a native save file dialog.
- */
-void
-Save_TileMap(Context* context)
-{
-    auto& state = context->state();
-    if (state.tileMapPath.empty() && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-        Dialog_SaveTileMap(context);
-    } else {
-        state.tileMapSaved = true;
-        tile::TileMap::Save(*state.tileMap, state.tileMapPath);
-    }
-}
-
-/**
  * Render the main UI window.
  */
 void
@@ -469,50 +453,23 @@ Render_TilesetDisplayWindow(Context* context, ImGuiIO& io)
         }
     }
 
-    /* Render popups */
-    {
-        // confirm dialog is triggered with Context::confirm
-        auto& currentDialog = state.currentDialog;
-        if (!currentDialog.done && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-            ImGui::OpenPopup("confirm_dialog");
-        }
-        auto popup_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize;
-        if (ImGui::BeginPopupModal("confirm_dialog", NULL, popup_flags)) {
-            ImGui::Text(currentDialog.text);
-            ImGui::Separator();
-
-            if (ImGui::Button("Yes")) {
-                if (currentDialog.callback)
-                    currentDialog.callback(true);
-                currentDialog.done = true;
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("No")) {
-                if (currentDialog.callback)
-                    currentDialog.callback(false);
-                currentDialog.done = true;
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-
-        if (state.interactionBlocked && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
-            ImGui::OpenPopup("interaction_blocker");
-        }
-        auto ib_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
-        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
-        ImGui::SetNextWindowPos(ImVec2(-100, -100), ImGuiCond_Always);
-        ImGui::SetNextWindowSize(ImVec2(1, 1));
-        if (ImGui::BeginPopupModal("interaction_blocker", NULL, ib_flags)) {
-            if (!state.interactionBlocked) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        }
-    }
-
     ImGui::End();
+}
+
+/**
+ * Helper for saving current TileMap.
+ * Checks if the TileMap has a save path already, and saves there. Otherwise, opens a native save file dialog.
+ */
+void
+Save_TileMap(Context* context)
+{
+    auto& state = context->state();
+    if (state.tileMapPath.empty() && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+        Dialog_SaveTileMap(context);
+    } else {
+        state.tileMapSaved = true;
+        tile::TileMap::Save(*state.tileMap, state.tileMapPath);
+    }
 }
 
 void
@@ -581,6 +538,53 @@ Render_EditorMenuBar(Context* context)
     }
 }
 
+void
+Render_Popups(Context* context)
+{
+    auto& state = context->state();
+    {
+        // confirm dialog is triggered with Context::confirm
+        auto& currentDialog = state.currentDialog;
+        if (!currentDialog.done && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            ImGui::OpenPopup("confirm_dialog");
+        }
+        auto popup_flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize;
+        if (ImGui::BeginPopupModal("confirm_dialog", NULL, popup_flags)) {
+            ImGui::Text(currentDialog.text);
+            ImGui::Separator();
+
+            if (ImGui::Button("Yes")) {
+                if (currentDialog.callback)
+                    currentDialog.callback(true);
+                currentDialog.done = true;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("No")) {
+                if (currentDialog.callback)
+                    currentDialog.callback(false);
+                currentDialog.done = true;
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+
+        if (state.interactionBlocked && !ImGui::IsPopupOpen(NULL, ImGuiPopupFlags_AnyPopup)) {
+            ImGui::OpenPopup("interaction_blocker");
+        }
+        auto ib_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
+        ImVec2 center = ImGui::GetMainViewport()->GetCenter();
+        ImGui::SetNextWindowPos(ImVec2(-100, -100), ImGuiCond_Always);
+        ImGui::SetNextWindowSize(ImVec2(1, 1));
+        if (ImGui::BeginPopupModal("interaction_blocker", NULL, ib_flags)) {
+            if (!state.interactionBlocked) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        }
+    }
+}
+
 Context::Context(Window* window)
   : window_(window)
   , state_()
@@ -606,6 +610,7 @@ Context::render()
     ImGui::ShowDemoWindow();
     Render_EditorMenuBar(this);
     Render_TilesetDisplayWindow(this, io);
+    Render_Popups(this);
 
     this->state_.hasMouseFocus = io.WantCaptureMouse;
     this->state_.hasKeyboardFocus = io.WantCaptureKeyboard;
@@ -643,6 +648,48 @@ Context::confirm(const char* text, std::function<void(bool)> callback)
     auto& currentDialog = this->state_.currentDialog;
     if (currentDialog.done)
         currentDialog = { text, callback, false };
+}
+
+void
+Context::forceSaveDialog(std::function<void()> then)
+{
+    if (ImGui::BeginPopupModal("confirm_dialog", NULL) || ImGui::BeginPopupModal("interaction_blocker", NULL)) {
+        ImGui::CloseCurrentPopup();
+        ImGui::EndPopup();
+    }
+
+    // TODO: de-duplicate this code
+    auto& state = this->state();
+    if (state.tileMapPath.empty()) {
+        auto& state = this->state();
+        // block interaction with the window while the native dialog is active
+        state.interactionBlocked = true;
+        this->window()->openDialog(Window::Dialog::SaveFile,
+            "Save Tile Map",
+            { "JSON Files", "*.json" },
+            false,
+            [=](bool success, std::vector<std::string>& input) {
+                // file dialogs are opened on another thread.
+                // microtasks are executed on the main thread.
+                this->microtask([=] {
+                    auto& state = this->state();
+                    // TODO: notify user about failure
+                    if (success) {
+                        auto path = fs::absolute(input[0]).generic_string();
+                        state.tileMapSaved = true;
+                        state.tileMapPath = path;
+                        tile::TileMap::Save(*state.tileMap, path);
+                    }
+                    // unblock window interaction
+                    state.interactionBlocked = false;
+                    then();
+                });
+            });
+    } else {
+        state.tileMapSaved = true;
+        tile::TileMap::Save(*state.tileMap, state.tileMapPath);
+        then();
+    }
 }
 
 void
