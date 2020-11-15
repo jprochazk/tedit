@@ -25,6 +25,7 @@
 #include <sstream>
 #include <filesystem>
 namespace fs = std::filesystem;
+#include <cmath>
 
 // GLM
 #include <glm/glm.hpp>
@@ -35,6 +36,7 @@ namespace fs = std::filesystem;
 
 // spdlog
 #include <spdlog/spdlog.h>
+#include <spdlog/fmt/fmt.h>
 
 // json
 #include <nlohmann/json.hpp>
