@@ -6,18 +6,21 @@
 
 /*
 
-TODO: automatically resize tilemap as needed by growing/shrinking the arrays
 TODO: new tilemap menu button implementation
+TODO: document controls somewhere
 
-TODO this stream
-* resize tilemap to add columns/rows
-
-internal representation:
-Tile = uint32
-Layer = Tile[1024 * 1024]
-TileMap = Layer[16]
-
-
+TODO: resize by dragging edges
+TODO: layers
+TODO: other tools
+* brush
+* fill
+* line
+* stamp
+* copy/paste tiles
+TODO: display some tilemap info
+* columns/rows
+* tilesize
+*
 
 */
 
@@ -48,8 +51,8 @@ draw_grid(gfx::Renderer* renderer, glm::vec<2, size_t> mapSize, size_t tileSize,
     auto height = mapSize.y * tileSize;
 
     // highlight
-    auto mcol = std::floorf(mouse.x / tileSize);
-    auto mrow = std::floorf(mouse.y / tileSize);
+    auto mcol = std::floor(mouse.x / tileSize);
+    auto mrow = std::floor(mouse.y / tileSize);
 
     // mouse is in tilemap bounds
     if (mcol >= 0 && mcol < mapSize.x && mrow >= 0 && mrow < mapSize.y) {
@@ -124,13 +127,26 @@ main(void)
         if (context.state().hasKeyboardFocus) {
             return;
         }
-        // modifiers -> key -> action
-        if (modifiers == 0 /* none */) {
-            if (key == GLFW_KEY_ESCAPE)
-                return window.close();
-            if (key == GLFW_KEY_SPACE) {
-                if (action == GLFW_PRESS) {
-                    state.tileMap->grow(tile::TileMap::Direction::Left, 2);
+        // action -> modifiers -> key
+        if (action == GLFW_PRESS) {
+            if (modifiers == 0 /* none */) {
+                if (key == GLFW_KEY_ESCAPE) {
+                    window.close();
+                    return;
+                }
+                if (key == GLFW_KEY_L) {
+                    state.tileMap->grow(tile::TileMap::Direction::Right, 1);
+                    return;
+                }
+                if (key == GLFW_KEY_J) {
+                    state.tileMap->grow(tile::TileMap::Direction::Left, 1);
+                }
+                if (key == GLFW_KEY_I) {
+                    state.tileMap->grow(tile::TileMap::Direction::Top, 1);
+                    return;
+                }
+                if (key == GLFW_KEY_K) {
+                    state.tileMap->grow(tile::TileMap::Direction::Bottom, 1);
                 }
             }
         }
@@ -161,8 +177,8 @@ main(void)
             glm::vec2 mapSize = { tilemap->columns(), tilemap->rows() };
             if (glfwGetMouseButton(window.handle(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
                 auto tileSize = tilemap->tileSize();
-                auto col = std::floorf(mouseInWorld.x / tileSize);
-                auto row = std::floorf(mouseInWorld.y / tileSize);
+                auto col = std::floor(mouseInWorld.x / tileSize);
+                auto row = std::floor(mouseInWorld.y / tileSize);
                 if (col >= 0 && col < mapSize.x && row >= 0 && row < mapSize.y) {
                     auto& tile = (*tilemap)(col, row);
                     if (tile != state.currentTile) {

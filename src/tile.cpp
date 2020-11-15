@@ -43,12 +43,12 @@ namespace tile {
 uint16_t
 TileId(const Tile& tile)
 {
-    return (tile & 0b0000001111111111Ui16);
+    return (tile & static_cast<uint16_t>(0b0000001111111111));
 }
 uint16_t
 TileSetId(const Tile& tile)
 {
-    return (tile & 0b1111110000000000Ui16) >> 10;
+    return (tile & static_cast<uint16_t>(0b1111110000000000)) >> 10;
 }
 void
 TileId(Tile& tile, uint16_t value)
@@ -100,48 +100,51 @@ TileMap::TileMap(const std::string& name, uint32_t columns, uint32_t rows, uint3
 void
 TileMap::grow(Direction direction, size_t count)
 {
-    /*
-    1. reallocate to fit
-    2. if needed, shift tiles
-    3. you're done??? that was easy
-    */
-
     auto old_columns = this->columns_;
     auto old_rows = this->rows_;
-    auto current_size = this->columns_ * this->rows_;
+    auto old_size = this->columns_ * this->rows_;
 
-    switch (direction) {
-        case Direction::Left: {
-            auto newSize = current_size + (this->rows_ * count);
-            std::vector<Tile> newTiles;
-            newTiles.resize(newSize, 0);
-
-            for (size_t i = 0; i < this->tiles_.size(); ++i) {
-                auto column = i / old_columns;
-                auto row = i % old_columns;
-                auto new_columns = old_columns + 1;
-                newTiles[column + row * new_columns] = this->tiles_[column + row * old_columns];
-            }
-
-            this->tiles_ = std::move(newTiles);
-            this->columns_ += 1;
-
-            break;
-        }
-        case Direction::Right: {
-
-            // don't need to shift tiles
-            break;
-        }
-        case Direction::Bottom: {
-
-            break;
-        }
-        case Direction::Top: {
-
-            break;
-        }
+    std::vector<Tile> new_tiles;
+    size_t new_size;
+    if (direction == Direction::Left || direction == Direction::Right) {
+        new_size = old_size + (old_rows * count);
+        this->columns_ += count;
+    } else {
+        new_size = old_size + (old_columns * count);
+        this->rows_ += count;
     }
+
+    new_tiles.resize(new_size, 0);
+    for (size_t i = 0; i < this->tiles_.size(); ++i) {
+        auto column = i / old_rows;
+        auto row = i % old_rows;
+        size_t new_pos;
+        size_t old_pos;
+        switch (direction) {
+            case Direction::Left: {
+                new_pos = (column + 1) + row * (old_columns + count);
+                old_pos = column + row * old_columns;
+                break;
+            }
+            case Direction::Right: {
+                new_pos = column + row * (old_columns + count);
+                old_pos = column + row * old_columns;
+                break;
+            }
+            case Direction::Top: {
+                new_pos = column + row * old_columns;
+                old_pos = column + row * old_columns;
+                break;
+            }
+            case Direction::Bottom: {
+                new_pos = column + (row + 1) * old_columns;
+                old_pos = column + row * old_columns;
+                break;
+            }
+        }
+        new_tiles.at(new_pos) = this->tiles_.at(old_pos);
+    }
+    this->tiles_ = std::move(new_tiles);
 }
 
 void
@@ -233,9 +236,8 @@ static std::unordered_map<std::string, std::unique_ptr<TileSet>> tileSetCache;
 TileSet*
 TileSet::Load(const std::string& path)
 {
-    if (auto& it = tileSetCache.find(path); it == tileSetCache.end()) {
+    if (auto it = tileSetCache.find(path); it == tileSetCache.end()) {
         tileSetCache.emplace(path, std::move(std::make_unique<TileSet>(path)));
-        it = tileSetCache.find(path);
     }
     return tileSetCache[path].get();
 }
