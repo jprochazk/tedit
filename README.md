@@ -38,7 +38,7 @@ It uses:
 * Click on tile set view -> select hovered tile
 * Click on tile map view -> set hovered tile to tile selected in tile set view
 
-![Showcase Image](SHOWCASE.png)
+![Demo Image](./DEMO_IMAGE.png)
 
 #### Planned:
 * Custom properties (key/value pairs) attached to tiles
