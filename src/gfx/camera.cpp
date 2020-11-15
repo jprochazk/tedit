@@ -43,7 +43,7 @@ Camera::move(glm::vec2 to)
 void
 Camera::zoom(float wheel)
 {
-    this->zoom_ += wheel / 10;
+    this->zoom_ = std::clamp(this->zoom_ + wheel / 10, 0.1f, 20.f);
     float hw = ((float)this->window_->width() / 2.f) / this->zoom_;
     float hh = ((float)this->window_->height() / 2.f) / this->zoom_;
     this->proj_ = glm::ortho(hw, -hw, -hh, hh, -1.f, 1.f);
