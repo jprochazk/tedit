@@ -27,6 +27,10 @@ It uses:
 * L -> add column to map's right side
 * I -> add row to map's top side
 * K -> add row to map's bottom side
+* SHIFT+J -> remove column from map's left side
+* SHIFT+L -> remove column from map's right side
+* SHIFT+I -> remove row from map's top side
+* SHIFT+K -> remove row from map's bottom side
 * CTRL+N -> new tile map (not implemented yet)
 * CTRL+S -> save current tile map
 * CTRL+O -> open tile map

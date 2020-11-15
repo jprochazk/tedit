@@ -13,3 +13,5 @@ vs2019/
 
 # imgui
 imgui.ini
+
+*.exe

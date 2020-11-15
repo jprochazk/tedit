@@ -83,6 +83,7 @@ TileMap::TileMap()
   , rows_()
   , tileSize_()
   , tiles_()
+  , tileSetIdSequence_()
   , tileSets_()
   , tileSetPaths_()
 {}
@@ -92,72 +93,61 @@ TileMap::TileMap(const std::string& name, uint32_t columns, uint32_t rows, uint3
   , columns_(columns)
   , rows_(rows)
   , tileSize_(tileSize)
-  , tiles_(columns * rows)
-  , tileSets_((size_t)2 << 5)
-  , tileSetPaths_((size_t)2 << 5)
-{}
+  , tiles_()
+  , tileSetIdSequence_(0)
+  , tileSets_()
+  , tileSetPaths_()
+{
+    this->tiles_.resize(columns * rows, Tile(-1));
+    this->tileSets_.resize((2 << 5) - 1, nullptr);
+    this->tileSetPaths_.reserve((2 << 5) - 1);
+}
 
 void
-TileMap::grow(Direction direction, size_t count)
+TileMap::resize(Direction direction, int count)
 {
     auto old_columns = this->columns_;
     auto old_rows = this->rows_;
     auto old_size = this->columns_ * this->rows_;
 
+    size_t new_columns = old_columns;
+    size_t new_rows = old_rows;
     size_t new_size;
     if (direction == Direction::Left || direction == Direction::Right) {
         new_size = old_size + (old_rows * count);
-        this->columns_ += count;
+        new_columns += count;
     } else {
         new_size = old_size + (old_columns * count);
-        this->rows_ += count;
+        new_rows += count;
     }
 
     std::vector<Tile> new_tiles;
-    new_tiles.resize(new_size, 0);
+    new_tiles.resize(new_size, Tile(-1));
     for (size_t i = 0; i < this->tiles_.size(); ++i) {
-        auto column = i / old_rows;
-        auto row = i % old_rows;
-        size_t new_pos;
-        size_t old_pos;
-        switch (direction) {
-            case Direction::Left: {
-                new_pos = (column + 1) + row * (old_columns + count);
-                old_pos = column + row * old_columns;
-                break;
-            }
-            case Direction::Right: {
-                new_pos = column + row * (old_columns + count);
-                old_pos = column + row * old_columns;
-                break;
-            }
-            case Direction::Top: {
-                new_pos = column + row * old_columns;
-                old_pos = column + row * old_columns;
-                break;
-            }
-            case Direction::Bottom: {
-                new_pos = column + (row + 1) * old_columns;
-                old_pos = column + row * old_columns;
-                break;
-            }
-        }
+        auto old_column = i / old_rows;
+        auto old_row = i % old_rows;
+        int new_column = direction == Direction::Left ? old_column + count : old_column;
+        int new_row = direction == Direction::Bottom ? old_row + count : old_row;
+
+        // only check for overflow if we're shrinking
+        if (count < 0 && (new_column < 0 || new_column >= new_columns || new_row < 0 || new_row >= new_rows))
+            continue;
+
+        size_t new_pos = new_column + new_row * new_columns;
+        size_t old_pos = old_column + old_row * old_columns;
         new_tiles.at(new_pos) = this->tiles_.at(old_pos);
     }
-    this->tiles_ = std::move(new_tiles);
-}
 
-void
-TileMap::shrink(Direction direction, size_t count)
-{
-    std::cout << fmt::format("shrink in dir {} n {}", direction, count) << std::endl;
+    this->columns_ = new_columns;
+    this->rows_ = new_rows;
+    this->tiles_ = std::move(new_tiles);
 }
 
 void
 TileMap::add(TileSet* tileset)
 {
     spdlog::info("Added TileSet {}@{} to TileMap {}", tileset->source(), (void*)tileset, this->name());
-    this->tileSets_.push_back(tileset);
+    this->tileSets_[tileSetIdSequence_++] = tileset;
     this->tileSetPaths_.push_back(tileset->source());
 }
 void
@@ -197,7 +187,11 @@ TileSet*
 TileMap::tileset(Tile tile)
 {
     // TODO: return nullptr if we don't have this tileset
-    return this->tileSets_[TileSetId(tile)];
+    auto id = TileSetId(tile);
+    if (id < this->tileSets_.size())
+        return this->tileSets_[TileSetId(tile)];
+    else
+        return nullptr;
 }
 
 std::string
@@ -242,14 +236,23 @@ TileSet::Load(const std::string& path)
     return tileSetCache[path].get();
 }
 
+std::unique_ptr<TileMap>
+TileMap::Create(const std::string& name, uint32_t columns, uint32_t rows)
+{
+    // TODO: variable tilesize
+    return std::make_unique<TileMap>(name, columns, rows, 32);
+}
+
 void
 TileMap::Save(TileMap& tm, const std::string& path)
 {
     try {
         std::vector<std::string> tileSetSources;
         tileSetSources.reserve(tm.tileSets_.size());
-        for (auto& ts : tm.tileSets_) {
-            tileSetSources.emplace_back(ts->source());
+        for (auto ts : tm.tileSets_) {
+            if (ts != nullptr) {
+                tileSetSources.emplace_back(ts->source());
+            }
         }
 
         // clang-format off
@@ -287,11 +290,11 @@ TileMap::Load(const std::string& path)
 
         std::vector<TileSet*> tileSets;
         std::vector<std::string> tileSetPaths;
-        tileSets.reserve(columns * rows);
-        tileSetPaths.reserve(columns * rows);
-        for (const auto& source : tileSetSources) {
-            tileSets.emplace_back(TileSet::Load(source));
-            tileSetPaths.emplace_back(std::move(source));
+        tileSets.resize((2 << 5) - 1, nullptr);
+        tileSetPaths.reserve((2 << 5) - 1);
+        for (size_t i = 0; i < tileSetSources.size(); ++i) {
+            tileSets[i] = TileSet::Load(tileSetSources[i]);
+            tileSetPaths.emplace_back(std::move(tileSetSources[i]));
         }
 
         auto out = std::make_unique<TileMap>();

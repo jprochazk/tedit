@@ -246,6 +246,12 @@ Window::setTitle(const std::string& title)
     glfwSetWindowTitle(this->handle_, this->title_.c_str());
 }
 
+const std::string&
+Window::title() const
+{
+    return this->title_;
+}
+
 GLFWwindow*
 Window::handle() const
 {

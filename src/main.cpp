@@ -6,18 +6,15 @@
 
 /*
 
-** MVP **
-TODO: shrink tilemap
-TODO: new tilemap menu button implementation
-
 ** Post-MVP **
+TODO: position camera on tilemap center at tilemap load
 TODO: various scattered TODOs
 TODO: layers
 TODO: other tools
     * RESIZE -> once implemented, remove J/K/L/I controls
     * UNDO CTRL+Z
     * REDO CTRL+Y or CTRL+shift+Z
-    * brush
+    * BRUSH
     * FILL
     * LINE
     * STAMP
@@ -27,6 +24,9 @@ TODO: other tools
 TODO: display some tilemap info
     * columns/rows
     * tilesize
+TODO: recent files
+TODO: sessions (store camera position, open tilemap, selected tile, selected tool, etc)
+TODO: variable tilesize
 
 */
 
@@ -41,6 +41,8 @@ draw_tiles(gfx::Renderer* renderer, tile::TileMap* tilemap)
         for (size_t column = 0; column < tilemap->columns(); ++column) {
             auto tile = (*tilemap)(column, row);
             auto tileset = tilemap->tileset(tile);
+            if (tileset == nullptr)
+                continue;
             auto uv = tilemap->uv(tile);
             auto model = glm::translate(glm::mat4(1), { halfTileSize + column * 32.f, halfTileSize + row * 32.f, 0.f });
             model = glm::scale(model, tileScale);
@@ -95,6 +97,8 @@ main(void)
     state.tileMapSaved = true;
     state.tileMapPath = "SAMPLE_MAP.json";
 
+    window.setTitle(fmt::format("TEdit - {}", state.tileMapPath));
+
     // TODO: maybe refactor this a bit
     bool is_dragging = false;
     glm::dvec2 initialPosition(0, 0);
@@ -141,6 +145,8 @@ main(void)
                         context.confirm("Save unsaved progress?", [&](bool choice) {
                             if (choice) {
                                 context.forceSaveDialog([&] { window.close(); });
+                            } else {
+                                window.close();
                             }
                         });
                     } else {
@@ -149,18 +155,36 @@ main(void)
                     return;
                 }
                 if (key == GLFW_KEY_L) {
-                    state.tileMap->grow(tile::TileMap::Direction::Right, 1);
+                    state.tileMap->resize(tile::TileMap::Direction::Right, 1);
                     return;
                 }
                 if (key == GLFW_KEY_J) {
-                    state.tileMap->grow(tile::TileMap::Direction::Left, 1);
+                    state.tileMap->resize(tile::TileMap::Direction::Left, 1);
                 }
                 if (key == GLFW_KEY_I) {
-                    state.tileMap->grow(tile::TileMap::Direction::Top, 1);
+                    state.tileMap->resize(tile::TileMap::Direction::Top, 1);
                     return;
                 }
                 if (key == GLFW_KEY_K) {
-                    state.tileMap->grow(tile::TileMap::Direction::Bottom, 1);
+                    state.tileMap->resize(tile::TileMap::Direction::Bottom, 1);
+                    return;
+                }
+            }
+            if (modifiers == GLFW_MOD_SHIFT) {
+                if (key == GLFW_KEY_L) {
+                    state.tileMap->resize(tile::TileMap::Direction::Right, -1);
+                    return;
+                }
+                if (key == GLFW_KEY_J) {
+                    state.tileMap->resize(tile::TileMap::Direction::Left, -1);
+                }
+                if (key == GLFW_KEY_I) {
+                    state.tileMap->resize(tile::TileMap::Direction::Top, -1);
+                    return;
+                }
+                if (key == GLFW_KEY_K) {
+                    state.tileMap->resize(tile::TileMap::Direction::Bottom, -1);
+                    return;
                 }
             }
         }
@@ -189,15 +213,30 @@ main(void)
         auto* tilemap = context.state().tileMap.get();
         if (tilemap != nullptr) {
             glm::vec2 mapSize = { tilemap->columns(), tilemap->rows() };
-            if (glfwGetMouseButton(window.handle(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS) {
-                auto tileSize = tilemap->tileSize();
-                auto col = std::floor(mouseInWorld.x / tileSize);
-                auto row = std::floor(mouseInWorld.y / tileSize);
-                if (col >= 0 && col < mapSize.x && row >= 0 && row < mapSize.y) {
-                    auto& tile = (*tilemap)(col, row);
-                    if (tile != state.currentTile) {
-                        tile = state.currentTile;
-                        state.tileMapSaved = false;
+
+            if (!state.hasMouseFocus) {
+                if (glfwGetMouseButton(window.handle(), GLFW_MOUSE_BUTTON_LEFT)) {
+                    auto tileSize = tilemap->tileSize();
+                    auto col = std::floor(mouseInWorld.x / tileSize);
+                    auto row = std::floor(mouseInWorld.y / tileSize);
+                    if (col >= 0 && col < mapSize.x && row >= 0 && row < mapSize.y) {
+                        auto& tile = (*tilemap)(col, row);
+
+                        tile::Tile currentTile = state.currentTile;
+                        // if we're holding shift, erase
+                        if (glfwGetKey(window.handle(), GLFW_KEY_LEFT_SHIFT) ||
+                            glfwGetKey(window.handle(), GLFW_KEY_RIGHT_SHIFT)) {
+                            currentTile = tile::Tile(-1);
+                        }
+                        // otherwise, paint
+                        if (tile != currentTile) {
+                            tile = currentTile;
+
+                            if (state.tileMapSaved) {
+                                state.tileMapSaved = false;
+                                window.setTitle(fmt::format("TEdit - {}*", state.tileMapPath));
+                            }
+                        }
                     }
                 }
             }

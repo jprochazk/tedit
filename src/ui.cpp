@@ -136,6 +136,8 @@ Dialog_SaveTileMap(Context* context)
                     state.tileMapSaved = true;
                     state.tileMapPath = path;
                     tile::TileMap::Save(*state.tileMap, path);
+
+                    context->window()->setTitle(fmt::format("TEdit - {}", state.tileMapPath));
                 }
                 // unblock window interaction
                 state.interactionBlocked = false;
@@ -172,6 +174,8 @@ Dialog_LoadTileMap(Context* context)
                     state.tileMapSaved = true;
                     state.tileMapPath = path;
                     state.tileSetIndex = 0;
+
+                    context->window()->setTitle(fmt::format("TEdit - {}", state.tileMapPath));
                 }
                 // unblock window interaction
                 state.interactionBlocked = false;
@@ -237,10 +241,13 @@ Render_NewTileMapPopup(Context* context, bool* is_open)
     auto flags = ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove;
     if (ImGui::BeginPopupModal("New Tile Map", NULL, flags)) {
 
-        static std::string name;
+        static std::string name = "";
+        static int size[2] = { 32, 32 };
         ImGui::InputString("Name", &name);
+        ImGui::InputInt2("Size", &size[0]);
 
-        static int selected = 2;
+        // TODO: variable tilesize
+        /* static int selected = 2;
         const char* options[] = { "8x8", "16x16", "32x32", "64x64" };
         const char* selectedText = (selected < IM_ARRAYSIZE(options) && selected > -1) ? options[selected] : "...";
         if (ImGui::BeginCombo("Tile size", selectedText)) {
@@ -250,27 +257,37 @@ Render_NewTileMapPopup(Context* context, bool* is_open)
                 }
             }
             ImGui::EndCombo();
-        }
+        } */
 
-        if (ImGui::Button("+")) {
+        if (ImGui::Button("Confirm")) {
             // TODO: create new tilemap here
-            std::cout << "Name: " << name << std::endl;
-            std::cout << "Tile size: " << options[selected] << std::endl;
+            state.tileMap = tile::TileMap::Create(name, size[0], size[1]);
+            state.currentTile = 0;
+            state.tileSetIndex = 0;
+            state.tileMapSaved = false;
+            state.tileMapPath.clear();
+
+            context->window()->setTitle("TEdit");
+
             ImGui::CloseCurrentPopup();
             *is_open = false;
 
             // Reset inputs
             name = "";
-            selected = 2;
+            size[0] = 32;
+            size[1] = 32;
+            // selected = 2;
         }
         ImGui::SameLine();
-        if (ImGui::Button("x")) {
+        if (ImGui::Button("Cancel")) {
             ImGui::CloseCurrentPopup();
             *is_open = false;
 
             // Reset inputs
             name = "";
-            selected = 2;
+            size[0] = 32;
+            size[1] = 32;
+            // selected = 2;
         }
 
         ImGui::EndPopup();
@@ -313,7 +330,7 @@ Render_TilesetDisplayWindow(Context* context, ImGuiIO& io)
 
             if (ImGui::BeginCombo("Tilesets", current_tileset_path)) {
                 for (size_t i = 0; i < tspaths.size(); ++i) {
-                    if (ImGui::Selectable(tspaths[i].c_str())) {
+                    if (!tspaths[i].empty() && ImGui::Selectable(tspaths[i].c_str())) {
                         state.tileSetIndex = i;
                     }
                 }
@@ -325,14 +342,18 @@ Render_TilesetDisplayWindow(Context* context, ImGuiIO& io)
                 spdlog::info("Add tileset");
                 Dialog_AddTileSet(context);
                 state.tileMapSaved = false;
+
+                context->window()->setTitle(fmt::format("TEdit - {}*", state.tileMapPath));
             }
         }
     }
     { // tileset display
         if (tilemap != nullptr) {
-            std::vector<tile::TileSet*> tilesets = tilemap->tilesets();
+            auto* currentTileSet = tilemap->tilesets()[state.tileSetIndex];
 
-            if (state.tileSetIndex < tilesets.size()) {
+            if (currentTileSet == nullptr) {
+                ImGui::Text("No Tile Set selected.");
+            } else {
                 // TODO: always zoom into current middle of the view instead of origin
                 // It's actually a bit of work:
                 // #1:  Render around CENTER, not BOTTOM_LEFT, so that [0, 0] in display
@@ -388,13 +409,11 @@ Render_TilesetDisplayWindow(Context* context, ImGuiIO& io)
 
                 // Clip what we're drawing next
                 draw_list->PushClipRect(display_p0, display_p1, true);
-
-                // Get selected tileset image
-                auto* currentTileSet = tilesets[state.tileSetIndex];
                 auto& currentTileSetAtlas = currentTileSet->atlas();
 
                 // Draw the tileset
-                // We're drawing it flipped on both axes due to how the image data is loaded and handled inside ImGui.
+                // We're drawing it flipped on both axes due to how the image data is loaded and handled inside
+                // ImGui.
                 // TODO: investigate a cleaner solution
                 auto tileset_p0 = ImVec2(origin.x, origin.y - (currentTileSetAtlas.height() / zoom) + display_sz.y);
                 auto tileset_p1 = ImVec2(origin.x + (currentTileSetAtlas.width() / zoom), origin.y + display_sz.y);
@@ -426,7 +445,8 @@ Render_TilesetDisplayWindow(Context* context, ImGuiIO& io)
                             // calculate tile ID
                             auto tilesPerRow = atlasW / (float)tilemap->tileSize();
                             auto tileSetId = state.tileSetIndex;
-                            // X and Y are reversed because of UV flip when drawing tileset atlas (see above @AddImage)
+                            // X and Y are reversed because of UV flip when drawing tileset atlas (see above
+                            // @AddImage)
                             auto tile_id = tile_row + tile_column * tilesPerRow;
 
                             // set current tile
@@ -469,6 +489,8 @@ Save_TileMap(Context* context)
     } else {
         state.tileMapSaved = true;
         tile::TileMap::Save(*state.tileMap, state.tileMapPath);
+
+        context->window()->setTitle(fmt::format("TEdit - {}", state.tileMapPath));
     }
 }
 
@@ -679,6 +701,8 @@ Context::forceSaveDialog(std::function<void()> then)
                         state.tileMapSaved = true;
                         state.tileMapPath = path;
                         tile::TileMap::Save(*state.tileMap, path);
+
+                        this->window_->setTitle(fmt::format("TEdit - {}", state.tileMapPath));
                     }
                     // unblock window interaction
                     state.interactionBlocked = false;
@@ -688,6 +712,8 @@ Context::forceSaveDialog(std::function<void()> then)
     } else {
         state.tileMapSaved = true;
         tile::TileMap::Save(*state.tileMap, state.tileMapPath);
+
+        this->window_->setTitle(fmt::format("TEdit - {}", state.tileMapPath));
         then();
     }
 }
@@ -703,5 +729,4 @@ Context::poll()
 {
     this->tasks_.poll();
 }
-
 }; // namespace ui

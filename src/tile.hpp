@@ -88,8 +88,10 @@ public:
         Top,
         Bottom
     };
-    void grow(Direction direction, size_t count);
-    void shrink(Direction direction, size_t count);
+    /**
+     * @param count How many rows/columns to add/remove - negative value implies shrinking, positive implies growing
+     */
+    void resize(Direction direction, int count);
 
     void add(TileSet* tileset);
     void remove(TileSet* tileset);
@@ -108,6 +110,7 @@ public:
     std::vector<TileSet*>& tilesets();
     std::vector<std::string>& tilesetPaths();
 
+    static std::unique_ptr<TileMap> Create(const std::string& name, uint32_t columns, uint32_t rows);
     static void Save(TileMap& tm, const std::string& path);
     static std::unique_ptr<TileMap> Load(const std::string& path);
 
@@ -117,6 +120,7 @@ private:
     uint32_t rows_;
     uint32_t tileSize_;
     std::vector<Tile> tiles_;
+    size_t tileSetIdSequence_;
     std::vector<TileSet*> tileSets_;
     std::vector<std::string> tileSetPaths_;
 }; // class TileMap

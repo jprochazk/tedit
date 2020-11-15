@@ -44,6 +44,7 @@ public:
 
     bool shortcut(int modifiers, int key);
 
+    const std::string& title() const;
     GLFWwindow* handle() const;
     int width() const;
     int height() const;
