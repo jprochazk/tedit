@@ -607,7 +607,7 @@ Context::render()
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
-    ImGui::ShowDemoWindow();
+    // ImGui::ShowDemoWindow();
     Render_EditorMenuBar(this);
     Render_TilesetDisplayWindow(this, io);
     Render_Popups(this);

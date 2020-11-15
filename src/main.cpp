@@ -6,22 +6,27 @@
 
 /*
 
+** MVP **
 TODO: shrink tilemap
 TODO: new tilemap menu button implementation
-TODO: document controls somewhere
 
-TODO: resize by dragging edges
+** Post-MVP **
+TODO: various scattered TODOs
 TODO: layers
 TODO: other tools
-* brush
-* fill
-* line
-* stamp
-* copy/paste tiles
+    * RESIZE -> once implemented, remove J/K/L/I controls
+    * UNDO CTRL+Z
+    * REDO CTRL+Y or CTRL+shift+Z
+    * brush
+    * FILL
+    * LINE
+    * STAMP
+    * SELECT TILES
+    * COPY CTRL+C
+    * PASTE CTRL+V
 TODO: display some tilemap info
-* columns/rows
-* tilesize
-*
+    * columns/rows
+    * tilesize
 
 */
 
@@ -132,12 +137,14 @@ main(void)
         if (action == GLFW_PRESS) {
             if (modifiers == 0 /* none */) {
                 if (key == GLFW_KEY_ESCAPE) {
-                    if (!state.tileMapSaved) {
+                    if (state.tileMap != nullptr && !state.tileMapSaved) {
                         context.confirm("Save unsaved progress?", [&](bool choice) {
                             if (choice) {
                                 context.forceSaveDialog([&] { window.close(); });
                             }
                         });
+                    } else {
+                        window.close();
                     }
                     return;
                 }
