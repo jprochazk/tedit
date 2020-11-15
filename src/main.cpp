@@ -6,6 +6,7 @@
 
 /*
 
+TODO: shrink tilemap
 TODO: new tilemap menu button implementation
 TODO: document controls somewhere
 

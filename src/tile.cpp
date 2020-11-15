@@ -104,7 +104,6 @@ TileMap::grow(Direction direction, size_t count)
     auto old_rows = this->rows_;
     auto old_size = this->columns_ * this->rows_;
 
-    std::vector<Tile> new_tiles;
     size_t new_size;
     if (direction == Direction::Left || direction == Direction::Right) {
         new_size = old_size + (old_rows * count);
@@ -114,6 +113,7 @@ TileMap::grow(Direction direction, size_t count)
         this->rows_ += count;
     }
 
+    std::vector<Tile> new_tiles;
     new_tiles.resize(new_size, 0);
     for (size_t i = 0; i < this->tiles_.size(); ++i) {
         auto column = i / old_rows;

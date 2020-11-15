@@ -22,8 +22,6 @@ global_GLMessageCallback(GLenum source,
         type,
         severity,
         message);
-    system("pause");
-    exit(0);
 }
 
 static void
