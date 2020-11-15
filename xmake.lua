@@ -6,7 +6,7 @@ add_requires("glfw >=3.3.2")
 -- or from conan (among others)
 add_requires("CONAN::glm/0.9.9.8", { alias = "glm" })
 add_requires("CONAN::stb/20200203", { alias = "stb" })
-add_requires("CONAN::spdlog/1.8.0", { alias = "spdlog" })
+add_requires("CONAN::spdlog/1.8.0", { alias = "spdlog", configs = {options = "spdlog:header_only=True"} }) 
 add_requires("CONAN::nlohmann_json/3.9.1", { alias = "json" })
 add_requires("CONAN::concurrentqueue/1.0.2", { alias = "cqueue" });
 
@@ -27,8 +27,6 @@ target("tedit")
 
     -- imgui using OpenGL3/GLFW backend
     add_files("vendor/imgui/*.cpp")
-    add_files("vendor/imgui/backends/imgui_impl_opengl3.cpp")
-    add_files("vendor/imgui/backends/imgui_impl_glfw.cpp")
     add_includedirs("vendor/imgui")
 
     -- portabile-file-dialogs
