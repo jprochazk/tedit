@@ -19,6 +19,10 @@ It uses:
 * Tile map editing with MSPaint pencil-like tool
 * Tile map resizing
 
+#### Notes
+
+**BUG:** Before opening/saving/loading/editing anything, please ensure your current working directory is correct. If your tilemap file contains a tileset path as "../image/tileset.png", this file must exist, otherwise the application will crash. This will be fixed in a future update with TEdit project files.
+
 #### Controls:
 
 **Keys:**
@@ -34,6 +38,7 @@ It uses:
 * CTRL+N -> new tile map (not implemented yet)
 * CTRL+S -> save current tile map
 * CTRL+O -> open tile map
+
 **Mouse:**
 * Drag middle mouse button on tile map view -> pan
 * Drag middle mouse button on tile set view -> pan

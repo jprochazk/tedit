@@ -94,20 +94,21 @@ Deinit_ImGUI()
  * Returns all strings from `paths` which are not in `existing`.
  */
 std::vector<std::string>
-GetUniquePaths(const std::vector<std::string>& paths, const std::vector<std::string>& existing)
+GetUniquePaths(const std::vector<std::string>& paths, const std::vector<std::string>& existing, fs::path relativeTo)
 {
     std::vector<std::string> unique;
     for (auto& file : paths) {
-        auto relative_file_path = fs::relative(fs::absolute(file), fs::absolute(fs::current_path()));
+        auto relative_file_path = fs::relative(fs::absolute(file), relativeTo);
         bool success = true;
         for (auto it = existing.begin(); it != existing.end(); ++it) {
-            if (relative_file_path == fs::relative(fs::absolute(*it), fs::absolute(fs::current_path()))) {
+            if (relative_file_path == fs::relative(fs::absolute(*it), relativeTo)) {
                 success = false;
                 break;
             }
         }
-        if (success)
+        if (success) {
             unique.push_back(relative_file_path.generic_string());
+        }
     }
     return unique;
 }
@@ -165,14 +166,11 @@ Dialog_LoadTileMap(Context* context)
                 auto& state = context->state();
                 // TODO: notify user about failure
                 if (success) {
-                    auto path = fs::absolute(input[0]).generic_string();
-                    // assuming that tileMap is saved
-                    assert(state.tileMapSaved);
                     // reset all state related to tile/tilemap.
                     state.currentTile = 0;
-                    state.tileMap = tile::TileMap::Load(path);
+                    state.tileMap = tile::TileMap::Load(input.at(0));
                     state.tileMapSaved = true;
-                    state.tileMapPath = path;
+                    state.tileMapPath = input.at(0);
                     state.tileSetIndex = 0;
 
                     context->window()->setTitle(fmt::format("TEdit - {}", state.tileMapPath));
@@ -208,14 +206,15 @@ Dialog_AddTileSet(Context* context)
                 // TODO: notify user about failure
                 if (success) {
                     // we only want to add tilesets that aren't already present.
-                    auto selection = GetUniquePaths(input, state.tileMap->tilesetPaths());
-                    std::cout << "Added tilesets: " << std::endl;
+                    auto selection =
+                        GetUniquePaths(input, state.tileMap->tilesetPaths(), fs::absolute(state.workingDirectory));
+                    std::cout << "Found tilesets: " << std::endl;
                     for (auto& file : selection) {
                         if (!fs::exists(file))
                             continue;
                         auto* loaded = tile::TileSet::Load(file);
                         if (loaded) {
-                            std::cout << file << std::endl;
+                            std::cout << fs::absolute(fs::path(file)) << std::endl;
                             // add the tileset to the current tilemap
                             state.tileMap->add(loaded);
                         }
@@ -248,6 +247,7 @@ Dialog_SetWorkingDirectory(Context* context)
                     auto dir = input[0];
                     if (fs::exists(dir)) {
                         fs::current_path(dir);
+                        state.workingDirectory = dir;
                     }
                 }
                 // unblock window interaction
@@ -294,7 +294,7 @@ Render_NewTileMapPopup(Context* context, bool* is_open)
             state.currentTile = 0;
             state.tileSetIndex = 0;
             state.tileMapSaved = false;
-            state.tileMapPath.clear();
+            state.tileMapPath = "";
 
             context->window()->setTitle("TEdit");
 
@@ -644,16 +644,72 @@ Render_Popups(Context* context)
     }
 }
 
-Context::Context(Window* window)
+void
+SaveSession(Context* context)
+{
+    auto& state = context->state();
+    auto config_path = state.executableDirectory / fs::path("tedit.config");
+    std::ofstream config(config_path);
+    // clang-format off
+    json out = { 
+        { "wd", state.workingDirectory },
+        { "tmp", state.tileMapPath } 
+    };
+    config << out;
+    // clang-format on
+}
+
+void
+LoadSession(Context* context)
+{
+    auto& state = context->state();
+    auto config_path = state.executableDirectory / fs::path("tedit.config");
+    if (fs::exists(config_path)) {
+        spdlog::info("{}", config_path.generic_string());
+        std::ifstream config_file(config_path);
+        json cfg = json::parse(config_file);
+
+        if (cfg.contains("wd")) {
+            std::string workingDirectory = cfg["wd"];
+            // get working directory
+            spdlog::info("wd {}", workingDirectory);
+            if (!workingDirectory.empty() && fs::exists(workingDirectory)) {
+                fs::current_path(workingDirectory);
+                state.workingDirectory = workingDirectory;
+            }
+        }
+
+        if (cfg.contains("tmp")) {
+            // get last tile map path
+            std::string tileMapPath = cfg["tmp"];
+            spdlog::info("tmp {}", tileMapPath);
+            if (!tileMapPath.empty() && fs::exists(tileMapPath)) {
+                state.currentTile = 0;
+                state.tileMap = tile::TileMap::Load(tileMapPath);
+                state.tileMapSaved = true;
+                state.tileMapPath = tileMapPath;
+                state.tileSetIndex = 0;
+            }
+        }
+    }
+}
+
+Context::Context(Window* window, const std::string& executableDirectory)
   : window_(window)
   , state_()
   , tasks_()
 {
+    this->state_.executableDirectory = executableDirectory;
+    this->state_.workingDirectory = executableDirectory;
+    fs::current_path(executableDirectory);
+
+    LoadSession(this);
     Init_ImGUI(this->window_->handle());
 }
 
 Context::~Context()
 {
+    SaveSession(this);
     Deinit_ImGUI();
 }
 

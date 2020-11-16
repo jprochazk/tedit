@@ -34,12 +34,14 @@ struct ContextState
     bool hasKeyboardFocus = false;
     ConfirmDialog currentDialog = {};
     bool interactionBlocked = false;
+    std::string workingDirectory = {};
+    std::string executableDirectory = {};
 }; // struct ContextState
 
 class Context
 {
 public:
-    Context(Window* window);
+    Context(Window* window, const std::string& executableDirectory);
     ~Context();
 
     void render();

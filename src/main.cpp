@@ -81,26 +81,34 @@ draw_grid(gfx::Renderer* renderer, glm::vec<2, size_t> mapSize, size_t tileSize,
     }
 }
 
-#ifdef _WIN32
+#if 0 // def _WIN32
 int WINAPI
 WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 #else
 int
-main(void)
+main(int argc, char** argv)
 #endif
 {
     Window window("Test Window", 1600, 900);
     gfx::Camera camera(&window);
     gfx::Renderer renderer;
 
-    ui::Context context(&window);
+#ifdef _WIN32
+    CHAR path[MAX_PATH];
+    GetModuleFileNameA(NULL, path, MAX_PATH);
+    std::cout << path << std::endl;
+    auto executablePath = fs::path(path).parent_path().generic_string();
+#else
+    auto executablePath = fs::path(argv[0]).parent_path().generic_string();
+#endif
+    ui::Context context(&window, executablePath);
 
-    // NOTE: temporarily load sample map on startup
-    // TODO: remove this
     auto& state = context.state();
     window.setTitle(fmt::format("TEdit", state.tileMapPath));
 
     // TODO: maybe refactor this a bit
+    // put input handling somewhere separate
+    // + each possible input should have an associated command
     bool is_dragging = false;
     glm::dvec2 initialPosition(0, 0);
     glm::dvec2 panStart(0, 0);
