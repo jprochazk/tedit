@@ -40,3 +40,7 @@ target("tedit")
     add_packages("spdlog")
     add_packages("json")
     add_packages("cqueue");
+
+    if is_plat("windows") then 
+        add_files("res/tedit.rc")
+    end

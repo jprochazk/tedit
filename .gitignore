@@ -14,4 +14,7 @@ vs2019/
 # imgui
 imgui.ini
 
+# binary
+*.lnk
 *.exe
+*.res

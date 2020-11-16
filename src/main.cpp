@@ -81,8 +81,13 @@ draw_grid(gfx::Renderer* renderer, glm::vec<2, size_t> mapSize, size_t tileSize,
     }
 }
 
+#ifdef _WIN32
+int WINAPI
+WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
+#else
 int
 main(void)
+#endif
 {
     Window window("Test Window", 1600, 900);
     gfx::Camera camera(&window);
@@ -93,11 +98,7 @@ main(void)
     // NOTE: temporarily load sample map on startup
     // TODO: remove this
     auto& state = context.state();
-    state.tileMap = tile::TileMap::Load("SAMPLE_MAP.json");
-    state.tileMapSaved = true;
-    state.tileMapPath = "SAMPLE_MAP.json";
-
-    window.setTitle(fmt::format("TEdit - {}", state.tileMapPath));
+    window.setTitle(fmt::format("TEdit", state.tileMapPath));
 
     // TODO: maybe refactor this a bit
     bool is_dragging = false;

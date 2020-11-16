@@ -41,6 +41,11 @@ namespace fs = std::filesystem;
 // json
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
+
+// windows
+#ifdef _WIN32
+#include <windows.h>
+#endif
 // clang-format on
 
 #endif // TEDIT_PCH_
