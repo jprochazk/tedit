@@ -8,24 +8,24 @@
 
 ** Post-MVP **
 TODO: position camera on tilemap center at tilemap load
-TODO: various scattered TODOs
+TODO: sessions (store camera position, open tilemap, selected tile, selected tool, etc)
+TODO: recent files
+TODO: undo/redo (CTRL+Z/CTRL+SHIFT+Z)
 TODO: layers
 TODO: other tools
-    * RESIZE -> once implemented, remove J/K/L/I controls
-    * UNDO CTRL+Z
-    * REDO CTRL+Y or CTRL+shift+Z
-    * BRUSH
-    * FILL
-    * LINE
-    * STAMP
-    * SELECT TILES
-    * COPY CTRL+C
-    * PASTE CTRL+V
+    * RESIZE -> hover tilemap edge + drag LMB ... once implemented, remove key controls
+    * BRUSH -> hold LMB
+    * FILL -> click LMB
+    * LINE -> click LMB (start) + click LMB (end)
+    * STAMP -> select tiles in tileset -> click LMB
+    * SELECT TILES ->
+        * DELETE -> DEL
+        * COPY -> CTRL+C
+        * PASTE -> CTRL+V
 TODO: display some tilemap info
     * columns/rows
     * tilesize
-TODO: recent files
-TODO: sessions (store camera position, open tilemap, selected tile, selected tool, etc)
+TODO: various scattered TODOs
 TODO: variable tilesize
 
 */

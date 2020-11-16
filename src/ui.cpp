@@ -227,6 +227,35 @@ Dialog_AddTileSet(Context* context)
         });
 }
 
+void
+Dialog_SetWorkingDirectory(Context* context)
+{
+    auto& state = context->state();
+
+    // block interaction with the window while the native dialog is active
+    state.interactionBlocked = true;
+    context->window()->openDialog(Window::Dialog::SelectFolder,
+        "Select Working Directory",
+        {},
+        false,
+        [=](bool success, std::vector<std::string>& input) {
+            // file dialogs are opened on another thread.
+            // microtasks are executed on the main thread.
+            context->microtask([=] {
+                auto& state = context->state();
+                // TODO: notify user about failure
+                if (success) {
+                    auto dir = input[0];
+                    if (fs::exists(dir)) {
+                        fs::current_path(dir);
+                    }
+                }
+                // unblock window interaction
+                state.interactionBlocked = false;
+            });
+        });
+}
+
 /**
  * Rendering for the "New Tile Map" input popup
  */
@@ -555,6 +584,14 @@ Render_EditorMenuBar(Context* context)
             } else {
                 Dialog_LoadTileMap(context);
             }
+        }
+
+        // Set Working Directory
+        if (ImGui::BeginMenu("More")) {
+            if (ImGui::MenuItem("Set working directory")) {
+                Dialog_SetWorkingDirectory(context);
+            }
+            ImGui::EndMenu();
         }
         ImGui::EndMainMenuBar();
     }
