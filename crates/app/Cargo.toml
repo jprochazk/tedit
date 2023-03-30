@@ -1,0 +1,10 @@
+[package]
+name = "tedit"
+description = "Tile level editor"
+repository = "https://github.com/jprochazk/tedit"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+version = "0.0.1"
+edition = "2021"
+
+[dependencies]

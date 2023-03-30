@@ -1,6 +1,0 @@
-[submodule "vendor/imgui"]
-	path = vendor/imgui
-	url = https://github.com/ocornut/imgui.git
-[submodule "vendor/pfd"]
-	path = vendor/pfd
-	url = https://github.com/samhocevar/portable-file-dialogs.git
